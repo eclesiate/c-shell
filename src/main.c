@@ -24,7 +24,10 @@ int main(int argc, char *argv[])
             printf("%s\n", echoed);
             break;
         }
-        printf("%s: command not found\n", input);
+        else
+        {
+            printf("%s: command not found\n", input);
+        }
     }
 
     return 0;
