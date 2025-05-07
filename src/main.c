@@ -16,13 +16,13 @@ int main(int argc, char *argv[])
         char input[100];
         fgets(input, 100, stdin);
         input[strcspn(input, "\n")] = '\0'; // replace index of newline escape char with null terminator
+
         if (!strcmp(input, "exit 0"))
             break;
         else if (!strncmp("echo", input, 4))
         {
             char *echoed = input + 5; // pointer arithmetic onto remainder, extra + 1 for space
             printf("%s\n", echoed);
-            break;
         }
         else
         {
