@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
         char input[100];
         fgets(input, 100, stdin);
         input[strcspn(input, "\n")] = '\0'; // replace index of newline escape char with null terminator
-        if (strcmp(input, "exit 0"))
+        if (!strcmp(input, "exit 0"))
         {
             printf("%s\n", input);
             break;
