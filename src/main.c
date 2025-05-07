@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         // Flush after every printf
-        setbuf(stdout, NULL);
+        // setbuf(stdout, NULL);
 
         // Uncomment this block to pass the first stage
         printf("$ ");
