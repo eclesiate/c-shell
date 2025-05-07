@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 {
     // Flush after every printf
     setbuf(stdout, NULL);
-    char *input[100];
+    char input[100];
     fgets(input, 100, stdin);
 
     printf("%s: command not found\n", input);
