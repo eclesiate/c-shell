@@ -6,8 +6,8 @@ int main(int argc, char *argv[])
 {
     while (1)
     {
-        // Flush after every printf
-        // setbuf(stdout, NULL);
+        // Flush after every printf, even without \n
+        setbuf(stdout, NULL);
 
         // Uncomment this block to pass the first stage
         printf("$ ");
@@ -16,6 +16,11 @@ int main(int argc, char *argv[])
         char input[100];
         fgets(input, 100, stdin);
         input[strcspn(input, "\n")] = '\0'; // replace index of newline escape char with null terminator
+        if (strcmp(input, "exit 0"))
+        {
+            printf("%s\n", input);
+            break;
+        }
         printf("%s: command not found\n", input);
     }
 
