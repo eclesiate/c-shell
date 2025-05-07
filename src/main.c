@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
+static const char *allowable_cmds[] = {"type", "echo", "exit", NULL};
 
 int main(int argc, char *argv[])
 {
@@ -18,11 +21,36 @@ int main(int argc, char *argv[])
         input[strcspn(input, "\n")] = '\0'; // replace index of newline escape char with null terminator
 
         if (!strcmp(input, "exit 0"))
+        {
             break;
+        }
         else if (!strncmp("echo", input, 4))
         {
             char *echoed = input + 5; // pointer arithmetic onto remainder, extra + 1 for space
             printf("%s\n", echoed);
+        }
+        else if (!strncmp("type", input, 4))
+        {
+            char *cmd = input + 5;
+            bool is_shell_builtin = false;
+            /*
+             Chatgpt suggested this very cool way of looping through an array of strings in C
+             like how strings are null terminated, make the last element of the array NULL to act as a "sentinel" for the loop condition
+            */
+            for (const char *cmd = allowable_cmds; *cmd; ++cmd)
+            {
+                if (!strcmp(input, cmd))
+                {
+                    printf("%s is a shell builtin\n", input);
+                    is_shell_builtin = true;
+                    break;
+                }
+            }
+            if (is_shell_builtin)
+            {
+                continue;
+            }
+            printf("%s: command not found\n", input);
         }
         else
         {
