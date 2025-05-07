@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
             break;
         else if (!strncmp("echo", input, 4))
         {
-            char *echoed = input + 4; // pointer arithmetic onto remainder
+            char *echoed = input + 5; // pointer arithmetic onto remainder, extra + 1 for space
             printf("%s\n", echoed);
             break;
         }
