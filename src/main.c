@@ -18,6 +18,12 @@ int main(int argc, char *argv[])
         input[strcspn(input, "\n")] = '\0'; // replace index of newline escape char with null terminator
         if (!strcmp(input, "exit 0"))
             break;
+        else if (!strncmp("echo", input, 4))
+        {
+            char *echoed = input + 4; // pointer arithmetic onto remainder
+            printf("%s\n", echoed);
+            break;
+        }
         printf("%s: command not found\n", input);
     }
 
