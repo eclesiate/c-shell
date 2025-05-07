@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         }
         else if (!strncmp("type", input, 4))
         {
-            char *cmd = input + 5;
+            char *type = input + 5;
             bool is_shell_builtin = false;
             /*
              Chatgpt suggested this very cool way of looping through an array of strings in C
@@ -39,9 +39,9 @@ int main(int argc, char *argv[])
             */
             for (const char *cmd = *allowable_cmds; *cmd; ++cmd)
             {
-                if (!strcmp(input, cmd))
+                if (!strcmp(type, cmd))
                 {
-                    printf("%s is a shell builtin\n", input);
+                    printf("%s is a shell builtin\n", type);
                     is_shell_builtin = true;
                     break;
                 }
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
             {
                 continue;
             }
-            printf("%s: command not found\n", input);
+            printf("%s: command not found\n", type);
         }
         else
         {
