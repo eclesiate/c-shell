@@ -4,6 +4,6 @@ set -e
 git add .
 
 MSG="${1:-test}"
-git commit -m "$MSG"
+git commit --allow-empty -m "$MSG"
 
-git push
+git push origin master
