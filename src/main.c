@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     // Wait for user input
     char input[100];
     fgets(input, 100, stdin);
-    input[strcspn(input, "\n")] = '\0';
+    input[strcspn(input, "\n")] = '\0'; // replace index of first matched char with terminator
     printf("%s: command not found\n", input);
     return 0;
 }
