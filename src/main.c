@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
              Chatgpt suggested this very cool way of looping through an array of strings in C
              like how strings are null terminated, make the last element of the array NULL to act as a "sentinel" for the loop condition
             */
-            for (const char *cmd = *allowable_cmds; *cmd; ++cmd)
+            for (const char **cmd = allowable_cmds; *cmd; ++cmd)
             {
                 if (!strcmp(type, cmd))
                 {
