@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
             */
             for (const char **cmd = allowable_cmds; *cmd; ++cmd)
             {
-                if (!strcmp(type, cmd))
+                if (!strcmp(type, *cmd))
                 {
                     printf("%s is a shell builtin\n", type);
                     is_shell_builtin = true;
