@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
             {
                 continue;
             }
-            printf("%s: command not found\n", type);
+            printf("%s: not found\n", type);
         }
         else
         {
