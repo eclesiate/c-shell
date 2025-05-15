@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
                     printf("%s is %s\n", type, dir);
                     break;
                 }
-                dir = strtok(path, ":");
+                dir = strtok(NULL, ":");
             }
             if (exec_found)
             {
