@@ -53,7 +53,8 @@ int main(int argc, char *argv[])
             }
             // search for executable programs in PATH
             const char *path = getenv("PATH");
-            char *dir = strtok(path, ":");
+            char *path_copy = strdup(path);
+            char *dir = strtok(path_copy, ":");
             bool exec_found = false;
             char fullpath[256];
             while (dir)
@@ -83,8 +84,10 @@ int main(int argc, char *argv[])
             }
             if (exec_found)
             {
+                free(path_copy);
                 continue;
             }
+            free(path_copy);
             printf("%s: not found\n", type);
         }
         else
