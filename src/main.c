@@ -55,9 +55,9 @@ int main(int argc, char *argv[])
             const char *path = getenv("PATH");
             char *dir = strtok(path, ":");
             bool exec_found;
-            char *target = strdup(type);
             while (dir)
             {
+                printf("path: %s\n", dir);
                 struct dirent **executable_list;
                 int num_executables = scandir(dir, &executable_list, NULL, alphasort);
                 while (num_executables--)
@@ -83,10 +83,8 @@ int main(int argc, char *argv[])
             }
             if (exec_found)
             {
-                free(target);
                 continue;
             }
-            free(target);
             printf("%s: not found\n", type);
         }
         else
