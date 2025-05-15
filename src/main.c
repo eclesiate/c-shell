@@ -61,10 +61,12 @@ int main(int argc, char *argv[])
                 int num_executables = scandir(dir, &executable_list, NULL, alphasort);
                 while (num_executables--)
                 {
-                    if (strcmp(executable_list[num_executables]->d_name, strcat(type, ".exe")))
+                    char *target = type;
+                    if (strcmp(executable_list[num_executables]->d_name, strcat(target, ".exe")))
                     {
                         exec_found = true;
                         free(executable_list[num_executables]);
+                        strcat(dir, executable_list[num_executables]->d_name); // update path for final printf
                         break;
                     }
                     free(executable_list[num_executables]);
