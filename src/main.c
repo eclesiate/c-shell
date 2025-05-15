@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
             // search for executable programs in PATH
             const char *path = getenv("PATH");
             char *dir = strtok(path, ":");
-            bool exec_found;
+            bool exec_found = false;
             while (dir)
             {
                 // printf("path: %s\n", dir);
