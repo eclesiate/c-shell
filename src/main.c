@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
             const char *path = getenv("PATH");
             char *dir = strtok(path, ":");
             bool exec_found = false;
+            char fullpath[256];
             while (dir)
             {
                 // printf("path: %s\n", dir);
@@ -66,8 +67,7 @@ int main(int argc, char *argv[])
                     {
                         exec_found = true;
                         free(executable_list[num_executables]);
-                        // strcat(dir, "/");
-                        // strcat(dir, executable_list[num_executables]->d_name); // update path for final printf
+                        snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, type);
                         break;
                     }
                     free(executable_list[num_executables]);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 
                 if (exec_found)
                 {
-                    printf("%s is %s\n", type, dir);
+                    printf("%s is %s\n", type, fullpath);
                     break;
                 }
                 dir = strtok(NULL, ":");
