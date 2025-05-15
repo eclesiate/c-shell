@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <dirent.h>
 
 static const char *allowable_cmds[] = {"type", "echo", "exit", NULL};
 
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
         }
         else if (!strncmp("echo", input, 4))
         {
-            char *echoed = input + 5; // pointer arithmetic onto remainder, extra + 1 for space
+            char *echoed = input + 5; // pointer arithmetic onto remainder, extra + 1 for space "_"
             printf("%s\n", echoed);
         }
         else if (!strncmp("type", input, 4))
@@ -34,7 +35,7 @@ int main(int argc, char *argv[])
             char *type = input + 5;
             bool is_shell_builtin = false;
             /*
-             Chatgpt suggested this very cool way of looping through an array of strings in C
+             Chatgpt suggested this very cool way of looping through an array of strings in C.
              like how strings are null terminated, make the last element of the array NULL to act as a "sentinel" for the loop condition
             */
             for (const char **cmd = allowable_cmds; *cmd; ++cmd)
@@ -49,6 +50,30 @@ int main(int argc, char *argv[])
             if (is_shell_builtin)
             {
                 continue;
+            }
+            // search for executable programs in PATH
+            const char *path = getenv("PATH");
+            char *dir = strtok(path, ":");
+            bool exec_found;
+            while (dir)
+            {
+                struct dirent **executable_list;
+                int num_executables = scandir(dir, &executable_list, NULL, alphasort);
+                while (num_executables--)
+                {
+                    if (strcmp(executable_list[num_executables]->d_name, strcat(type, ".exe")))
+                    {
+                        exec_found = true;
+                    }
+                    free(executable_list[num_executables]);
+                    free(executable_list);
+                }
+
+                if (exec_found)
+                {
+                    printf("%s is %s\n", type, dir);
+                }
+                dir = strtok(path, ":");
             }
             printf("%s: not found\n", type);
         }
