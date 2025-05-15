@@ -64,16 +64,23 @@ int main(int argc, char *argv[])
                     if (strcmp(executable_list[num_executables]->d_name, strcat(type, ".exe")))
                     {
                         exec_found = true;
+                        free(executable_list[num_executables]);
+                        break;
                     }
                     free(executable_list[num_executables]);
-                    free(executable_list);
                 }
+                free(executable_list);
 
                 if (exec_found)
                 {
                     printf("%s is %s\n", type, dir);
+                    break;
                 }
                 dir = strtok(path, ":");
+            }
+            if (exec_found)
+            {
+                continue;
             }
             printf("%s: not found\n", type);
         }
