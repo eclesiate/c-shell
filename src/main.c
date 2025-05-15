@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
                     {
                         exec_found = true;
                         free(executable_list[num_executables]);
-                        strcat(dir, "/");
-                        strcat(dir, executable_list[num_executables]->d_name); // update path for final printf
+                        // strcat(dir, "/");
+                        // strcat(dir, executable_list[num_executables]->d_name); // update path for final printf
                         break;
                     }
                     free(executable_list[num_executables]);
