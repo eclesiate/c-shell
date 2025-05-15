@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
             bool exec_found;
             while (dir)
             {
-                printf("path: %s\n", dir);
+                // printf("path: %s\n", dir);
                 struct dirent **executable_list;
                 int num_executables = scandir(dir, &executable_list, NULL, alphasort);
                 while (num_executables--)
