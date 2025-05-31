@@ -6,7 +6,7 @@
 
 static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
 
-int handleInputs(char* input);
+int handleInputs(const char* input);
 int findExecutableFile(char* type, char** exepath);
 void runExecutableFile(char* exePath);
 
@@ -59,7 +59,7 @@ int handleInputs(const char* input) {
         }
         // if not recognized as builtin command then search for executable files in PATH
         if (!isShellBuiltin) {
-            if (findExecutableFile(type, exePath)) {
+            if (findExecutableFile(type, &exePath)) {
                 printf("%s is %s\n", type, exePath);
             } 
             else {
