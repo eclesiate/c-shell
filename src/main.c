@@ -7,7 +7,7 @@
 static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
 
 int findExecutableFile(char* type, char** exepath);
-void runExecutableFile(char* exePath)
+void runExecutableFile(char* exePath);
 
 int main(int argc, char* argv[]) {
     while (1) {
