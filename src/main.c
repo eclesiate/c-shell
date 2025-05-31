@@ -78,7 +78,9 @@ int handleInputs(const char* input) {
     return 0;
 }
 
-
+/*
+@params - exePath: double pointer since the length of the path is dependent on what the PATH is (not known at compile)
+*/
 int findExecutableFile(char *type, char **exePath) {
     // search for executable programs in PATH
     const char* path = getenv("PATH");
@@ -97,8 +99,8 @@ int findExecutableFile(char *type, char **exePath) {
                 while (numExe--) {
                     free(exeList[numExe]);
                 }
-                *exePath = malloc(sizeof(currPath) + sizeof(type));
-                snprintf(*exePath, sizeof(exePath), "%s/%s", currPath, type);
+                *exePath = malloc(strlen(currPath) + strlen(type) + 1);
+                snprintf(*exePath, strlen(exePath), "%s/%s", currPath, type);
                 break;
             }
             free(exeList[numExe]);
@@ -115,7 +117,7 @@ int findExecutableFile(char *type, char **exePath) {
 }
 
 void runExecutableFile(char* exePath) {
-    char* exeCmd = malloc(sizeof("./") + sizeof(exePath) - 1); // minus 1 since we dont need (>1) null terminators
+    char* exeCmd = malloc(strlen("./") + strlen(exePath) + 1);
     strcpy(exeCmd, "./");
     strcat(exeCmd, exePath);
     int returnCode = system(exeCmd);
