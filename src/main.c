@@ -73,9 +73,10 @@ int handleInputs(const char* input) {
     else {
         printf("%s: command not found\n", input);
     }
-    free(inputDupForStrtok);
+    
     free(exePath);
     printf("output: %s\n", strtok(inputDupForStrtok, " "));
+    free(inputDupForStrtok);
     return 0;
 }
 
