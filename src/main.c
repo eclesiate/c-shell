@@ -100,7 +100,7 @@ int findExecutableFile(char *type, char **exePath) {
                     free(exeList[numExe]);
                 }
                 *exePath = malloc(strlen(currPath) + strlen(type) + 1);
-                snprintf(*exePath, strlen(exePath), "%s/%s", currPath, type);
+                snprintf(*exePath, strlen(**exePath), "%s/%s", currPath, type);
                 break;
             }
             free(exeList[numExe]);
