@@ -69,7 +69,9 @@ int handleInputs(const char* input) {
     // RUN EXECUTABLE FILE: parse first argument and search for its .exe
     else if (findExecutableFile(strtok(inputDupForStrtok, " "), &exePath)) {
         printf("output in if statement: %s\n", exePath);
-        printf("second arg: %s",  strtok(inputDupForStrtok, " \t\n\0"));
+        printf("strlen of exePath: %d\n", strlen(exePath));
+        strtok(inputDupForStrtok, " \t\n\0");
+        printf("second arg: %s", strtok(NULL, " \t\n\0") );
         //runExecutableFile(exePath, strtok(NULL, " \t\n\0"));
     } 
     else {
