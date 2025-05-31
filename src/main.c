@@ -75,6 +75,7 @@ int handleInputs(const char* input) {
     }
     free(inputDupForStrtok);
     free(exePath);
+    printf("output: %s\n", strtok(inputDupForStrtok, " "));
     return 0;
 }
 
