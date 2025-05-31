@@ -39,12 +39,11 @@ int handleInputs(const char* input) {
         free(inputDupForStrtok);
         return 1;
     } 
-    else if (!strncmp("echo", input, 4)) {
-        char* echoed = input + 5; // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
-        printf("%s\n", echoed);
+    else if (!strncmp("echo", input, 4)) { 
+        printf("%s\n", input + 5); // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
     } 
     else if (!strncmp("type", input, 4)) {
-        char* type = input + 5;
+        const char* type = input + 5;
         bool isShellBuiltin = false;
         /*
             Chatgpt suggested this very cool way of looping through an array of strings in C.
@@ -117,7 +116,7 @@ int findExecutableFile(char *type, char **exePath) {
 
 void runExecutableFile(char* exePath) {
     char* exeCmd = malloc(sizeof("./") + sizeof(exePath) - 1); // minus 1 since we dont need (>1) null terminators
-    exeCmd = "./";
+    strcpy(exeCmd, "./");
     strcat(exeCmd, exePath);
     int returnCode = system(exeCmd);
     free(exeCmd);
