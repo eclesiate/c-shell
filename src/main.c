@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 int handleInputs(const char* input) {
     char* inputDupForStrtok = strdup(input); // since strtok is destructive
     char* exePath = NULL; // since I dont know the size of exePath, declare as NULL and pass it's address into findExecutableFile()
-
+    char* saveptr1 = NULL;
     if (!strcmp(input, "exit 0")) {
         free(inputDupForStrtok);
         return 1;
@@ -67,11 +67,10 @@ int handleInputs(const char* input) {
         }
     } 
     // RUN EXECUTABLE FILE: parse first argument and search for its .exe
-    else if (findExecutableFile(strtok(inputDupForStrtok, " "), &exePath)) {
+    else if (findExecutableFile(strtok_r(inputDupForStrtok, " ", &saveptr1), &exePath)) {
         printf("output in if statement: %s\n", exePath);
         printf("strlen of exePath: %d\n", strlen(exePath));
-        strtok(inputDupForStrtok, " \t\n\0");
-        printf("second arg: %s", strtok(NULL, " \t\n\0") );
+        printf("second arg: %s", strtok_r(inputDupForStrtok, " \t\n\0", &saveptr1); );
         //runExecutableFile(exePath, strtok(NULL, " \t\n\0"));
     } 
     else {
@@ -79,7 +78,6 @@ int handleInputs(const char* input) {
     }
     
     free(exePath);
-    printf("output: %s\n", strtok(inputDupForStrtok, " "));
     free(inputDupForStrtok);
     return 0;
 }
@@ -122,10 +120,9 @@ int findExecutableFile(char *type, char **exePath) {
     return 0;
 }
 
-void runExecutableFile(char* exePath) {
-    char* exeCmd = malloc(strlen("./") + strlen(exePath) + 1);
-    strcpy(exeCmd, "./");
-    strcat(exeCmd, exePath);
+void runExecutableFile(char* exePath, char* arg) { // TODO. add support for multiple args?
+    char* exeCmd = malloc(strlen("./") + strlen(exePath) + strlen(arg) + 1);
+    sprintf(exeCmd,"./%s %s", exePath, arg);
     int returnCode = system(exeCmd);
     free(exeCmd);
     // This is not robust error handling but I don't think it matters for now
