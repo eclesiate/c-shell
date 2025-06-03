@@ -47,8 +47,14 @@ int handleInputs(const char* input) {
     else if (!strncmp("echo", input, 4)) { 
         printf("%s\n", input + 5); // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
     } 
-    else if (!strcmp(firstArg, "pwd")) {
+    else if (!strncmp(firstArg, "pwd", 3)) {
         printWorkingDirectory();
+    }
+    else if (!strncmp(firstArg, "cd", 2)) {
+        const char* targetPath = strtok_r(inputDupForStrtok, " \t\n\0", &saveptr1);
+        if (chdir(targetPath)) {
+            printf("cd: %s: No such file or directory\n", targetPath);
+        }
     }
     else if (!strncmp("type", input, 4)) {
         const char* type = input + 5;
