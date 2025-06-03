@@ -207,7 +207,7 @@ void doubleQuotes(const char* arg) {
         printf("%s", msg);
     }
 
-    while(msg = strtok_r(NULL, "\'", &saveptr)) {
+    while(msg = strtok_r(NULL, "\"", &saveptr)) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
         }
