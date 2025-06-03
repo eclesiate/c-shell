@@ -14,6 +14,7 @@ void runExecutableFile(const char* exeName, char* args);
 void printWorkingDirectory();
 void changeDir(char* savePtr);
 void singleQuotes(const char* arg);
+void doubleQuotes(const char* arg);
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -49,6 +50,8 @@ int handleInputs(const char* input) {
     else if (!strncmp("echo", input, 4)) { 
         if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
             singleQuotes(input + 5);
+        } else if (*(input + 5) == '\"') {
+            doubleQuotes(input+5);
         } else {
             char* echoArgs;
             while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
@@ -190,4 +193,39 @@ void singleQuotes(const char* arg) { // maybe in the future add a function to st
     }
     printf("\n");
     free(dupArg);
+}
+
+void doubleQuotes(const char* arg) {    
+    char* saveptr;
+    char* dupArg = strdup(arg);
+    char* msg = strtok_r(dupArg, "\"", &saveptr);
+    if (msg) {
+        void
+        printf("%s", msg);
+    }
+
+    while(msg = strtok_r(NULL, "\'", &saveptr)) {
+        printf("%s", msg);
+    }
+    printf("\n");
+    free(dupArg);
+}
+
+void removeBackslash(char* str) {
+    char* src, dst;
+    char specialChars[] = {'$', '\\', '\"', '\'' '\0'};
+
+    for (src = dst = str; *src != '\0'; ++src) {
+        *dst = *src;
+        if (*dst != '\\') {
+            ++dst;
+        } else {
+            for (char* i = specialChars; *i != '\0'; ++i) {
+                if (*(src + 1) == *i) {
+                    break;
+                }
+            }
+        }
+    }
+
 }
