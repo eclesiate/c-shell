@@ -18,7 +18,6 @@ void changeDir(char* savePtr);
 void singleQuotes(const char* arg);
 void doubleQuotes(const char* arg);
 void removeBackslash(char* str, int isOutsideQuotes);
-void backslashOutsideQuotes()
 
 int main(int argc, char* argv[]) {
     while (1) {
