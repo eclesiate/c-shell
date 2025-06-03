@@ -57,8 +57,9 @@ int handleInputs(const char* input) {
         } else if (*(input + 5) == '\"') {
             doubleQuotes(inputDupForStrtok+5);
         } else {
+            int isOutsideQuotes = 1;
             if(strchr(inputDupForStrtok + 5, '\\')) {
-               removeBackslash(inputDupForStrtok + 5, (int isOutsideQuotes = 1));
+               removeBackslash(inputDupForStrtok + 5, isOutsideQuotes);
             }
             char* echoArgs;
             while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
@@ -208,16 +209,17 @@ void doubleQuotes(const char* arg) {
     char* dupArg = strdup(arg);
     char* ptr = dupArg;
     char* msg = strtok_r(ptr, "\"", &saveptr);
+    int isOutsideQuotes = 0;
     if (msg) {
         if(strchr(msg, '\\')) {
-            removeBackslash(msg, (int isOutsideQuotes = 0));
+            removeBackslash(msg, isOutsideQuotes);
         }
         printf("%s", msg);
     }
     // TODO. fix this approach, it passes the test cases since its kinda hardcoded, instead use single for loop that looks at every char.
     while((msg = strtok_r(NULL, "\"", &saveptr))) { 
         if(strchr(msg, '\\')) {
-            removeBackslash(msg, (int isOutsideQuotes = 0));
+            removeBackslash(msg, isOutsideQuotes);
         }
         if ((*msg == ' ')) {
             printf(" ");
