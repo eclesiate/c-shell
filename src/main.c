@@ -174,9 +174,12 @@ void changeDir(char* saveptr) {
 Method prints message surrounded by single quotes as is, ie does not strip inner white space
 */
 void singleQuotes(const char* arg) { // maybe in the future add a function to strip trailing and leading white spaces
-    size_t msglen = strlen(arg + 1);
-    char* msg;
-    memcpy(msg, arg + 1, msglen - 1); // do not include the closing single quote
+    // get string for inner message
+    size_t msglen = strlen(arg) - 2; //exclude quotes
+    char* msg = malloc(msglen + 1); // +1 for null 
+    memcpy(msg, arg + 1, msglen); // do not include the closing single quote
+    msg[msglen] = '\0';
+    
     if (strchr(msg, '\'')) {
         printf("Error: cannot have single quote inside other single quotes, even with backslash\n");
     } 
