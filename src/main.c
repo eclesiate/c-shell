@@ -60,13 +60,15 @@ int handleInputs(const char* input) {
             int isOutsideQuotes = 1;
             if(strchr(inputDupForStrtok + 5, '\\')) {
                removeBackslash(inputDupForStrtok + 5, isOutsideQuotes);
+               printf("%s\n", inputDupForStrtok+5);
             }
-            printf("%s\n", inputDupForStrtok+5);
-            // char* echoArgs;
-            // while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
-            //      printf("%s ", echoArgs);
-            // }
-           //printf("\n");
+            else {
+                char* echoArgs;
+                while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
+                     printf("%s ", echoArgs);
+                }
+               printf("\n");
+            }
         }
     } 
     else if (!strncmp(firstArg, "pwd", 3)) {
