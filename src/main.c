@@ -62,6 +62,7 @@ int handleInputs(const char* input) {
                removeBackslash(inputDupForStrtok + 5, isOutsideQuotes);
                printf("%s\n", inputDupForStrtok+5);
             }
+            // below is for edge case where extra whitespaces without backslash get stripped
             else {
                 char* echoArgs;
                 while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
