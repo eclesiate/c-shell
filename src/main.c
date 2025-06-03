@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+
+#include <unistd.h>
 #include <dirent.h>
 
 static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
@@ -9,6 +11,7 @@ static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
 int handleInputs(const char* input);
 int findExecutableFile(const char* type, char** exepath);
 void runExecutableFile(const char* exeName, char* args);
+void printWorkingDirectory();
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -131,4 +134,13 @@ void runExecutableFile(const char* exeName, char* args) { // TODO. add support f
     if(returnCode == -1) {
         printf("Failed to execute file %s, return code: %d", exeName, returnCode);
     } 
+}
+
+void printWorkingDirectory() {
+    long size = pathconf(".", _PC_PATH_MAX); // use '.' for current path
+    char* buf, pwd;
+    if ((buf = malloc((size_t)size)) != NULL) {
+        pwd = getcwd(buf, size);
+        printf("\r%s\n", pwd);
+    }
 }
