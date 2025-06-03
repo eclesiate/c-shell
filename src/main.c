@@ -8,7 +8,7 @@ static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
 
 int handleInputs(const char* input);
 int findExecutableFile(const char* type, char** exepath);
-void runExecutableFile(char* exePath, char* args);
+void runExecutableFile(char* exeName, char* args);
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -71,8 +71,7 @@ int handleInputs(const char* input) {
     // RUN EXECUTABLE FILE: parse first argument and search for its .exe
     else if (findExecutableFile(exeName, &exePath)) {
         char* args = strtok_r(NULL, "\t\n\0", &saveptr1);
-       // printf("args: %s\t\n", args);
-        runExecutableFile(exePath, args);
+        runExecutableFile(exeName, args);
     } 
     else {
         printf("%s: command not found\n", input);
@@ -122,7 +121,7 @@ int findExecutableFile(const char *type, char **exePath) {
     return 0;
 }
 
-void runExecutableFile(char* exePath, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
+void runExecutableFile(char* exeName, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
     size_t buflen = strlen(exePath) + strlen(args) + 2;
     char* exeCmd = malloc(buflen);
     snprintf(exeCmd, buflen, "%s %s", exePath, args);
