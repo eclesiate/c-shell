@@ -72,7 +72,7 @@ int handleInputs(const char* input) {
     else if (findExecutableFile(exeName, &exePath)) {
         char* args = strtok_r(NULL, "\t\n\0", &saveptr1);
        // printf("args: %s\t\n", args);
-        runExecutableFile(exeName, args);
+        runExecutableFile(exePath, args);
     } 
     else {
         printf("%s: command not found\n", input);
