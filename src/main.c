@@ -12,6 +12,8 @@ int handleInputs(const char* input);
 int findExecutableFile(const char* type, char** exepath);
 void runExecutableFile(const char* exeName, char* args);
 void printWorkingDirectory();
+void changeDir();
+void singleQuotes(const char* arg);
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -45,22 +47,17 @@ int handleInputs(const char* input) {
         return 1;
     } 
     else if (!strncmp("echo", input, 4)) { 
-        printf("%s\n", input + 5); // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
+        if ((input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
+            singleQuotes(input + 5);
+        } else {
+            printf("%s\n", input + 5); // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
+        }
     } 
     else if (!strncmp(firstArg, "pwd", 3)) {
         printWorkingDirectory();
     }
     else if (!strncmp(firstArg, "cd", 2)) {
-        const char* targetPath = strtok_r(NULL, " \t\n\0", &saveptr1);
-        const char* homeCopy = NULL;
-        if (!strncmp(targetPath, "~", 1)) {
-            const char* home = getenv("HOME");
-            // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
-            targetPath = home;
-        }
-        if (chdir(targetPath)) {
-            printf("cd: %s: No such file or directory\n", targetPath);
-        }
+        changeDir();
     }
     else if (!strncmp("type", input, 4)) {
         const char* type = input + 5;
@@ -160,4 +157,31 @@ void printWorkingDirectory() {
         printf("\r%s\n", pwd);
     }
     free(buf);
+}
+
+void changeDir() {
+    const char* targetPath = strtok_r(NULL, " \t\n\0", &saveptr1);
+    const char* homeCopy = NULL;
+    if (!strncmp(targetPath, "~", 1)) {
+        const char* home = getenv("HOME");
+        targetPath = home;
+    }
+    if (chdir(targetPath)) {
+        printf("cd: %s: No such file or directory\n", targetPath);
+    }
+}
+/*
+Method prints message surrounded by single quotes as is, ie does not strip inner white space
+*/
+void singleQuotes(const char* arg) { // maybe in the future add a function to strip trailing and leading white spaces
+    size_t msglen = strlen(arg + 1);
+    const char* msg;
+    memcpy(msg, arg + 1, msglen - 1) // do not include the closing single quote
+    if (!strchr(msg, '\'')) {
+        printf("Error: cannot have single quote inside other single quotes, even with backslash\n");
+    } 
+    else {
+        printf("%s\n", msg);
+    }
+    free(msg);
 }
