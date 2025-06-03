@@ -7,8 +7,8 @@
 static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
 
 int handleInputs(const char* input);
-int findExecutableFile(char* type, char** exepath);
-void runExecutableFile(char* exePath);
+int findExecutableFile(const char* type, char** exepath);
+void runExecutableFile(char* exePath, char* args);
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -70,7 +70,7 @@ int handleInputs(const char* input) {
     else if (findExecutableFile(strtok_r(inputDupForStrtok, " ", &saveptr1), &exePath)) {
         printf("output in if statement: %s\n", exePath);
         printf("strlen of exePath: %d\n", strlen(exePath));
-        printf("second arg: %s", strtok_r(inputDupForStrtok, " \t\n\0", &saveptr1); );
+        printf("second arg: %s", strtok_r(inputDupForStrtok, " \t\n\0", &saveptr1));
         //runExecutableFile(exePath, strtok(NULL, " \t\n\0"));
     } 
     else {
@@ -85,7 +85,7 @@ int handleInputs(const char* input) {
 /*
 @params - exePath: double pointer since the length of the path is dependent on what the PATH is (not known at compile)
 */
-int findExecutableFile(char *type, char **exePath) {
+int findExecutableFile(const char *type, char **exePath) {
     // search for executable programs in PATH
     const char* path = getenv("PATH");
     // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
@@ -103,7 +103,7 @@ int findExecutableFile(char *type, char **exePath) {
                 while (numExe--) {
                     free(exeList[numExe]);
                 }
-                size_t buflen = strlen(currPath) + strlen(type) + 1
+                size_t buflen = strlen(currPath) + strlen(type) + 1;
                 *exePath = malloc(buflen);
                 snprintf(*exePath, buflen, "%s/%s", currPath, type);
                 break;
@@ -121,8 +121,8 @@ int findExecutableFile(char *type, char **exePath) {
     return 0;
 }
 
-void runExecutableFile(char* exePath, char* arg) { // TODO. add support for multiple args?
-    char* exeCmd = malloc(strlen("./") + strlen(exePath) + strlen(arg) + 1);
+void runExecutableFile(char* exePath, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
+    char* exeCmd = malloc(strlen("./") + strlen(exePath) + strlen(args) + 1);
     sprintf(exeCmd,"./%s %s", exePath, arg);
     int returnCode = system(exeCmd);
     free(exeCmd);
