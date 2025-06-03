@@ -141,7 +141,8 @@ void runExecutableFile(const char* exeName, char* args) { // TODO. add support f
 
 void printWorkingDirectory() {
     long size = pathconf(".", _PC_PATH_MAX); // use '.' for current path
-    char* buf, pwd;
+    char* buf; 
+    char* pwd;
     if ((buf = malloc((size_t)size)) != NULL) {
         pwd = getcwd(buf, size);
         printf("\r%s\n", pwd);
