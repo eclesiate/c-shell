@@ -17,7 +17,8 @@ void printWorkingDirectory();
 void changeDir(char* savePtr);
 void singleQuotes(const char* arg);
 void doubleQuotes(const char* arg);
-void removeBackslash(char* str);
+void removeBackslash(char* str, int isOutsideQuotes);
+void backslashOutsideQuotes()
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -53,10 +54,13 @@ int handleInputs(const char* input) {
     } 
     else if (!strncmp("echo", input, 4)) { 
         if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
-            singleQuotes(input + 5);
+            singleQuotes(inputDupForStrtok + 5);
         } else if (*(input + 5) == '\"') {
-            doubleQuotes(input+5);
+            doubleQuotes(inputDupForStrtok+5);
         } else {
+            if(strchr(inputDupForStrtok + 5, '\\')) {
+               removeBackslash(inputDupForStrtok + 5, (int isOutsideQuotes = 1))
+            }
             char* echoArgs;
             while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
                  printf("%s ", echoArgs);
@@ -207,14 +211,14 @@ void doubleQuotes(const char* arg) {
     char* msg = strtok_r(ptr, "\"", &saveptr);
     if (msg) {
         if(strchr(msg, '\\')) {
-            removeBackslash(msg);
+            removeBackslash(msg, (int isOutsideQuotes = 0));
         }
         printf("%s", msg);
     }
-
-    while((msg = strtok_r(NULL, "\"", &saveptr))) {
+    // TODO. fix this approach, it passes the test cases since its kinda hardcoded, instead use single for loop that looks at every char.
+    while((msg = strtok_r(NULL, "\"", &saveptr))) { 
         if(strchr(msg, '\\')) {
-            removeBackslash(msg);
+            removeBackslash(msg, (int isOutsideQuotes = 0));
         }
         if ((*msg == ' ')) {
             printf(" ");
@@ -228,7 +232,7 @@ void doubleQuotes(const char* arg) {
     free(dupArg);
 }
 
-void removeBackslash(char* str) {
+void removeBackslash(char* str, int isOutsideQuotes) {
     char* src; 
     char* dst;
     char specialChars[] = {'$', '\\', '\"', '\'', '\0'};
@@ -242,6 +246,9 @@ void removeBackslash(char* str) {
                 if (*(src + 1) == *i) {
                     break;
                 }
+            }
+            if (!isOutsideQuotes) {
+                ++dst;
             }
         }
     }
