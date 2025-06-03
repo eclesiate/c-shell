@@ -123,7 +123,7 @@ int findExecutableFile(const char *type, char **exePath) {
 }
 
 void runExecutableFile(char* exePath, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
-    char* exeCmd = malloc(strlen(".") + strlen(exePath) + strlen(args) + 1);
+    char* exeCmd = malloc(strlen(".") + strlen(exePath) + strlen(args) + 2);
     sprintf(exeCmd,".%s %s", exePath, args);
     int returnCode = system(exeCmd);
     free(exeCmd);
