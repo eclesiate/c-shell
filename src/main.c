@@ -42,9 +42,10 @@ int main(int argc, char* argv[]) {
 
 int handleInputs(const char* input) {
     char* inputDupForStrtok = strdup(input); // since strtok is destructive
+    char* ptr = inputDupForStrtok;
     char* exePath = NULL; // since I dont know the size of exePath, declare as NULL and pass it's address into findExecutableFile()
     char* saveptr1 = NULL;
-    const char* firstArg = strtok_r(inputDupForStrtok, " ", &saveptr1);
+    const char* firstArg = strtok_r(ptr, " ", &saveptr1);
 
     if (!strcmp(input, "exit 0")) {
         free(inputDupForStrtok);
@@ -215,10 +216,10 @@ void doubleQuotes(const char* arg) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
         }
-        // if ((*ptr= ' ')) {
-        //     printf(" ");
-        //     while(*ptr == ' ') ++ptr;
-        // }
+        if ((*msg= ' ')) {
+            printf(" ");
+            while(*msg == ' ') ++msg;
+        }
         printf("%s", msg);
     }
     printf("\n");
