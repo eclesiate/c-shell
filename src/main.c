@@ -15,6 +15,7 @@ void printWorkingDirectory();
 void changeDir(char* savePtr);
 void singleQuotes(const char* arg);
 void doubleQuotes(const char* arg);
+void removeBackslash(char* str);
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -219,7 +220,7 @@ void doubleQuotes(const char* arg) {
 void removeBackslash(char* str) {
     char* src; 
     char* dst;
-    char specialChars[] = {'$', '\\', '\"', '\'' '\0'};
+    char specialChars[] = {'$', '\\', '\"', '\'', '\0'};
 
     for (src = dst = str; *src != '\0'; ++src) {
         *dst = *src;
