@@ -1,3 +1,5 @@
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -113,7 +115,8 @@ int findExecutableFile(const char *type, char **exePath) {
     const char* path = getenv("PATH");
     // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
     char* pathCopy = strdup(path);
-    char* currPath = strtok(pathCopy, ":");
+    char* scan = pathCopy;
+    char* currPath = strtok(scan, ":");
     bool exeFound = false;
 
     while (currPath) {
@@ -169,7 +172,6 @@ void printWorkingDirectory() {
 
 void changeDir(char* saveptr) {
     const char* targetPath = strtok_r(NULL, " \t\n\0", &saveptr);
-    const char* homeCopy = NULL;
     if (!strncmp(targetPath, "~", 1)) {
         const char* home = getenv("HOME");
         targetPath = home;
@@ -184,12 +186,13 @@ Method prints message surrounded by single quotes as is, ie does not strip inner
 void singleQuotes(const char* arg) { // maybe in the future add a function to strip trailing and leading white spaces
     char* saveptr;
     char* dupArg = strdup(arg);
-    char* msg = strtok_r(dupArg, "\'", &saveptr);
+    char* ptr = dupArg;
+    char* msg = strtok_r(ptr, "\'", &saveptr);
     if (msg) {
         printf("%s", msg);
     }
 
-    while(msg = strtok_r(NULL, "\'", &saveptr)) {
+    while((msg = strtok_r(NULL, "\'", &saveptr))) {
         printf("%s", msg);
     }
     printf("\n");
@@ -199,7 +202,8 @@ void singleQuotes(const char* arg) { // maybe in the future add a function to st
 void doubleQuotes(const char* arg) {    
     char* saveptr;
     char* dupArg = strdup(arg);
-    char* msg = strtok_r(dupArg, "\"", &saveptr);
+    char* ptr = dupArg;
+    char* msg = strtok_r(ptr, "\"", &saveptr);
     if (msg) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
@@ -207,9 +211,13 @@ void doubleQuotes(const char* arg) {
         printf("%s", msg);
     }
 
-    while(msg = strtok_r(NULL, "\"", &saveptr)) {
+    while((msg = strtok_r(NULL, "\"", &saveptr))) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
+        }
+        if ((*dupArg= ' ')) {
+            printf(" ");
+            while(*ptr == ' ') ++ptr;
         }
         printf("%s", msg);
     }
@@ -234,5 +242,4 @@ void removeBackslash(char* str) {
             }
         }
     }
-
 }
