@@ -216,9 +216,11 @@ void doubleQuotes(const char* arg) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
         }
-        if ((*msg= ' ')) {
+        if ((*msg == ' ')) {
             printf(" ");
-            while(*msg == ' ') ++msg;
+            while(*msg == ' ') {
+                ++msg;
+            }
         }
         printf("%s", msg);
     }
