@@ -215,7 +215,7 @@ void doubleQuotes(const char* arg) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
         }
-        if ((*dupArg= ' ')) {
+        if ((*ptr= ' ')) {
             printf(" ");
             while(*ptr == ' ') ++ptr;
         }
