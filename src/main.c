@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <dirent.h>
 
-static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
+static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
 int handleInputs(const char* input);
 int findExecutableFile(const char* type, char** exepath);
@@ -147,4 +147,5 @@ void printWorkingDirectory() {
         pwd = getcwd(buf, size);
         printf("\r%s\n", pwd);
     }
+    free(buf);
 }
