@@ -200,11 +200,16 @@ void doubleQuotes(const char* arg) {
     char* dupArg = strdup(arg);
     char* msg = strtok_r(dupArg, "\"", &saveptr);
     if (msg) {
-        void
+        if(strchr(msg, '\\')) {
+            removeBackslash(msg);
+        }
         printf("%s", msg);
     }
 
     while(msg = strtok_r(NULL, "\'", &saveptr)) {
+        if(strchr(msg, '\\')) {
+            removeBackslash(msg);
+        }
         printf("%s", msg);
     }
     printf("\n");
@@ -212,7 +217,8 @@ void doubleQuotes(const char* arg) {
 }
 
 void removeBackslash(char* str) {
-    char* src, dst;
+    char* src; 
+    char* dst;
     char specialChars[] = {'$', '\\', '\"', '\'' '\0'};
 
     for (src = dst = str; *src != '\0'; ++src) {
