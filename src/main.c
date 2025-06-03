@@ -53,7 +53,7 @@ int handleInputs(const char* input) {
     else if (!strncmp(firstArg, "cd", 2)) {
         const char* targetPath = strtok_r(NULL, " \t\n\0", &saveptr1);
         const char* homeCopy = NULL;
-        if (!strncmp(targetPath, '~', 1)) {
+        if (!strncmp(targetPath, "~", 1)) {
             const char* home = getenv("HOME");
             // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
             targetPath = home;
