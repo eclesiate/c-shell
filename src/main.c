@@ -215,10 +215,10 @@ void doubleQuotes(const char* arg) {
         if(strchr(msg, '\\')) {
             removeBackslash(msg);
         }
-        if ((*ptr= ' ')) {
-            printf(" ");
-            while(*ptr == ' ') ++ptr;
-        }
+        // if ((*ptr= ' ')) {
+        //     printf(" ");
+        //     while(*ptr == ' ') ++ptr;
+        // }
         printf("%s", msg);
     }
     printf("\n");
