@@ -121,14 +121,14 @@ int findExecutableFile(const char *type, char **exePath) {
     return 0;
 }
 
-void runExecutableFile(char* exeName, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
-    size_t buflen = strlen(exePath) + strlen(args) + 2;
+void runExecutableFile(const char* exeName, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
+    size_t buflen = strlen(exeName) + strlen(args) + 2;
     char* exeCmd = malloc(buflen);
     snprintf(exeCmd, buflen, "%s %s", exePath, args);
     int returnCode = system(exeCmd);
     free(exeCmd);
     // This is not robust error handling but I don't think it matters for now
     if(returnCode == -1) {
-        printf("Failed to execute file %s, return code: %d", exePath, returnCode);
+        printf("Failed to execute file %s, return code: %d", exeName, returnCode);
     } 
 }
