@@ -213,8 +213,8 @@ void doubleQuotes(const char* arg) {
     char* saveptr;
     char* dupArg = strdup(arg);
     char* ptr = dupArg;
-    if(strchr(arg, '\\')) {
-        removeBackslash(arg, isOutsideQuotes);
+    if(strchr(ptr, '\\')) {
+        removeBackslash(ptr, isOutsideQuotes);
     }
     char* msg = strtok_r(ptr, "\"", &saveptr);
     
