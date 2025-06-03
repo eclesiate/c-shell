@@ -51,7 +51,7 @@ int handleInputs(const char* input) {
             singleQuotes(input + 5);
         } else {
             char* echoArgs;
-            while(!(echoArgs = strtok_r(NULL, " ", &saveptr1))) {
+            while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
                  printf("%s ", echoArgs);
             }
             printf("\n");
