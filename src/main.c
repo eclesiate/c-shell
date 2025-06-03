@@ -51,7 +51,7 @@ int handleInputs(const char* input) {
         printWorkingDirectory();
     }
     else if (!strncmp(firstArg, "cd", 2)) {
-        const char* targetPath = strtok_r(inputDupForStrtok, " \t\n\0", &saveptr1);
+        const char* targetPath = strtok_r(NULL, " \t\n\0", &saveptr1);
         if (chdir(targetPath)) {
             printf("cd: %s: No such file or directory\n", targetPath);
         }
