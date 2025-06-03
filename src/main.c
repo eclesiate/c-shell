@@ -187,6 +187,7 @@ void singleQuotes(const char* arg) { // maybe in the future add a function to st
     while(msg = strtok_r(NULL, "\'", &saveptr)) {
         printf("%s", msg);
     }
+    printf("\n");
     // const char* ptr1 = arg;
     // const char* ptr2 = NULL;
     // int startIdx = 0;
