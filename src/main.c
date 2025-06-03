@@ -38,7 +38,7 @@ int handleInputs(const char* input) {
     char* inputDupForStrtok = strdup(input); // since strtok is destructive
     char* exePath = NULL; // since I dont know the size of exePath, declare as NULL and pass it's address into findExecutableFile()
     char* saveptr1 = NULL;
-    const char* exeName = strtok_r(inputDupForStrtok, " ", &saveptr1);
+    const char* firstArg = strtok_r(inputDupForStrtok, " ", &saveptr1);
 
     if (!strcmp(input, "exit 0")) {
         free(inputDupForStrtok);
@@ -47,6 +47,9 @@ int handleInputs(const char* input) {
     else if (!strncmp("echo", input, 4)) { 
         printf("%s\n", input + 5); // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
     } 
+    else if (!strcmp(firstArg, "pwd")) {
+        printWorkingDirectory();
+    }
     else if (!strncmp("type", input, 4)) {
         const char* type = input + 5;
         bool isShellBuiltin = false;
@@ -72,9 +75,9 @@ int handleInputs(const char* input) {
         }
     } 
     // RUN EXECUTABLE FILE: parse first argument and search for its .exe
-    else if (findExecutableFile(exeName, &exePath)) {
+    else if (findExecutableFile(firstArg, &exePath)) {
         char* args = strtok_r(NULL, "\t\n\0", &saveptr1);
-        runExecutableFile(exeName, args);
+        runExecutableFile(firstArg, args);
     } 
     else {
         printf("%s: command not found\n", input);
