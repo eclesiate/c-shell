@@ -8,7 +8,7 @@ static const char* allowableCmds[] = {"type", "echo", "exit", NULL};
 
 int handleInputs(const char* input);
 int findExecutableFile(const char* type, char** exepath);
-void runExecutableFile(char* exeName, char* args);
+void runExecutableFile(const char* exeName, char* args);
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -124,7 +124,7 @@ int findExecutableFile(const char *type, char **exePath) {
 void runExecutableFile(const char* exeName, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
     size_t buflen = strlen(exeName) + strlen(args) + 2;
     char* exeCmd = malloc(buflen);
-    snprintf(exeCmd, buflen, "%s %s", exePath, args);
+    snprintf(exeCmd, buflen, "%s %s", exeName, args);
     int returnCode = system(exeCmd);
     free(exeCmd);
     // This is not robust error handling but I don't think it matters for now
