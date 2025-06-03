@@ -68,7 +68,9 @@ int handleInputs(const char* input) {
     } 
     // RUN EXECUTABLE FILE: parse first argument and search for its .exe
     else if (findExecutableFile(strtok_r(inputDupForStrtok, " ", &saveptr1), &exePath)) {
-        runExecutableFile(exePath, strtok(NULL, " \t\n\0"));
+        const char* args = strtok(NULL, "\t\n\0")
+        printf("args: %s\t\n", args);
+        runExecutableFile(exePath, args);
     } 
     else {
         printf("%s: command not found\n", input);
@@ -100,7 +102,7 @@ int findExecutableFile(const char *type, char **exePath) {
                 while (numExe--) {
                     free(exeList[numExe]);
                 }
-                size_t buflen = strlen(currPath) + strlen(type) + 2;
+                size_t buflen = strlen(currPath) + strlen(type) + 2; // +1 for '/'
                 *exePath = malloc(buflen);
                 snprintf(*exePath, buflen, "%s/%s", currPath, type);
                 break;
