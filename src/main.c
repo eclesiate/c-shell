@@ -57,7 +57,7 @@ int handleInputs(const char* input) {
         printWorkingDirectory();
     }
     else if (!strncmp(firstArg, "cd", 2)) {
-        changeDir(&savePtr1);
+        changeDir(savePtr1);
     }
     else if (!strncmp("type", input, 4)) {
         const char* type = input + 5;
