@@ -249,9 +249,9 @@ void removeBackslash(char* str, int isOutsideQuotes) {
                     break;
                 }
             }
-            if (!isOutsideQuotes) {
-                ++dst;
-            }
+            // if (!isOutsideQuotes) {
+            //     ++dst;
+            // }
         }
     }
 }
