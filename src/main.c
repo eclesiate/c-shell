@@ -177,7 +177,7 @@ void singleQuotes(const char* arg) { // maybe in the future add a function to st
     size_t msglen = strlen(arg + 1);
     char* msg;
     memcpy(msg, arg + 1, msglen - 1); // do not include the closing single quote
-    if (!strchr(msg, '\'')) {
+    if (strchr(msg, '\'')) {
         printf("Error: cannot have single quote inside other single quotes, even with backslash\n");
     } 
     else {
