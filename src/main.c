@@ -57,7 +57,7 @@ int handleInputs(const char* input) {
         printWorkingDirectory();
     }
     else if (!strncmp(firstArg, "cd", 2)) {
-        changeDir(savePtr1);
+        changeDir(saveptr1);
     }
     else if (!strncmp("type", input, 4)) {
         const char* type = input + 5;
@@ -159,7 +159,7 @@ void printWorkingDirectory() {
     free(buf);
 }
 
-void changeDir(char* savePtr) {
+void changeDir(char* saveptr) {
     const char* targetPath = strtok_r(NULL, " \t\n\0", &saveptr);
     const char* homeCopy = NULL;
     if (!strncmp(targetPath, "~", 1)) {
