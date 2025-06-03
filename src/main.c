@@ -209,15 +209,16 @@ void singleQuotes(const char* arg) { // maybe in the future add a function to st
 }
 
 void doubleQuotes(const char* arg) {    
+    int isOutsideQuotes = 0;
     char* saveptr;
     char* dupArg = strdup(arg);
     char* ptr = dupArg;
+    if(strchr(arg, '\\')) {
+        removeBackslash(arg, isOutsideQuotes);
+    }
     char* msg = strtok_r(ptr, "\"", &saveptr);
-    int isOutsideQuotes = 0;
+    
     if (msg) {
-        if(strchr(msg, '\\')) {
-            removeBackslash(msg, isOutsideQuotes);
-        }
         printf("%s", msg);
     }
     // TODO. fix this approach, it passes the test cases since its kinda hardcoded, instead use single for loop that looks at every char.
