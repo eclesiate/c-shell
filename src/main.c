@@ -178,17 +178,55 @@ void changeDir(char* saveptr) {
 Method prints message surrounded by single quotes as is, ie does not strip inner white space
 */
 void singleQuotes(const char* arg) { // maybe in the future add a function to strip trailing and leading white spaces
-    // get string for inner message
-    size_t msglen = strlen(arg) - 2; //exclude quotes
-    char* msg = malloc(msglen + 1); // +1 for null 
-    memcpy(msg, arg + 1, msglen); // do not include the closing single quote
-    msg[msglen] = '\0';
-
-    if (strchr(msg, '\'')) {
-        printf("Error: cannot have single quote inside other single quotes, even with backslash\n");
-    } 
-    else {
-        printf("%s\n", msg);
+    char* saveptr;
+    char* msg = strtok_r(arg, "\'", &saveptr);
+    if (msg) {
+        printf("%s", msg);
     }
-    free(msg);
+
+    while(msg = strtok_r(NULL, "\'", &saveptr)) {
+        printf("%s", msg);
+    }
+    // const char* ptr1 = arg;
+    // const char* ptr2 = NULL;
+    // int startIdx = 0;
+    // int endIdx = 0;
+    // size_t len = 0;
+    // int idx = 0;
+
+    // const char* msg = NULL;
+
+    // while (*ptr1) {
+    //     if (*ptr1 == '\'') {
+    //         startIdx = idx;
+    //         ptr2 = ++ptr1;
+    //         while(*ptr2 != '\'') {
+    //             ++len;
+    //             ++ptr2;
+    //         }
+    //         if (!len) continue;
+    //         msg = malloc (len + 1);
+    //         endIdx = startIdx + len;
+    //         memcpy(msg, arg+startIdx, len);
+    //         printf("%s", msg);
+    //         free(msg);
+    //         idx = endIdx;
+    //     } else {
+    //         printf("%c", *(arg+idx));
+    //     }
+    //     ++idx;
+    // }
+    // // get string for inner message
+    // size_t msglen = strlen(arg) - 2; //exclude quotes
+    // char* msg = malloc(msglen + 1); // +1 for null 
+    // memcpy(msg, arg + 1, msglen); // do not include the closing single quote
+    // msg[msglen] = '\0';
+
+    // if (strchr(msg, '\'')) {
+    //     printf("Error: cannot have single quote inside other single quotes, even with backslash\n");
+    // } 
+    // else {
+    //     printf("%s\n", msg);
+    // }
+    // free(msg);
 }
