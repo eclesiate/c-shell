@@ -50,7 +50,11 @@ int handleInputs(const char* input) {
         if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
             singleQuotes(input + 5);
         } else {
-            printf("%s\n", input + 5); // pointer arithmetic onto remainder/argument, extra + 1 for space: "_"
+            char* echoArgs;
+            while(!(echoArgs = strtok_r(NULL, " ", &saveptr1))) {
+                 printf("%s ", echoArgs);
+            }
+            printf("\n");
         }
     } 
     else if (!strncmp(firstArg, "pwd", 3)) {
@@ -179,7 +183,7 @@ void singleQuotes(const char* arg) { // maybe in the future add a function to st
     char* msg = malloc(msglen + 1); // +1 for null 
     memcpy(msg, arg + 1, msglen); // do not include the closing single quote
     msg[msglen] = '\0';
-    
+
     if (strchr(msg, '\'')) {
         printf("Error: cannot have single quote inside other single quotes, even with backslash\n");
     } 
