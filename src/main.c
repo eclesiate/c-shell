@@ -66,7 +66,7 @@ int handleInputs(const char* input) {
             // while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
             //      printf("%s ", echoArgs);
             // }
-            printf("\n");
+           //printf("\n");
         }
     } 
     else if (!strncmp(firstArg, "pwd", 3)) {
