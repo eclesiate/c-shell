@@ -58,7 +58,7 @@ int handleInputs(const char* input) {
             doubleQuotes(inputDupForStrtok+5);
         } else {
             if(strchr(inputDupForStrtok + 5, '\\')) {
-               removeBackslash(inputDupForStrtok + 5, (int isOutsideQuotes = 1))
+               removeBackslash(inputDupForStrtok + 5, (int isOutsideQuotes = 1));
             }
             char* echoArgs;
             while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
