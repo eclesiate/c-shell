@@ -242,18 +242,25 @@ void removeBackslash(char* str, int isOutsideQuotes) {
     char* src; 
     char* dst;
     char specialChars[] = {'$', '\\', '\"', '\'', '\0'};
+    bool isDoubleBackSlash = false;
 
     for (src = dst = str; *src != '\0'; ++src) {
         *dst = *src;
         if (*dst != '\\') {
             ++dst;
         } else {
+            // for a double bslash, we want to preserve one bslash, so 
+            if (*(src + 1) == '\\') {
+                ++dst;
+                continue;        
+            }
+            // if proceding char of of the special chars \ $
             for (char* i = specialChars; *i != '\0'; ++i) {
                 if (*(src + 1) == *i) {
                     break;
                 }
             }
-            if (!isOutsideQuotes) { ++dst;}
+            //if (!isOutsideQuotes) { ++dst; }
            
         }
     }
