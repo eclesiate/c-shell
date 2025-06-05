@@ -254,6 +254,7 @@ void doubleQuotingTest(char* str) {
                 while(*src == ' ') {
                     ++src;
                 }
+                --src;
                 ++dst;
             } else if (*dst != '\\') { 
                 ++dst; 
