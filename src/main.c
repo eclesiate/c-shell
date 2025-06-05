@@ -248,7 +248,8 @@ void doubleQuotingTest(char* str) {
             if (*dst == '\"' && !escapedQuote) {
                 insideQuotes = true;
             } else if (*dst != '\\') { 
-                ++dst; // if there is an escaped double quote, then the double quote is preserved
+                ++dst; 
+                escapedQuote = false;// if there is an escaped double quote, then the double quote is preserved
             // outside of quotes, the char proceeding a backslash is preserved: do not increment dst ptr to omit '\'
             } else {
                 if (*(src + 1) == '\\') {
@@ -260,6 +261,7 @@ void doubleQuotingTest(char* str) {
                 insideQuotes = false;
             } else if (*dst != '\\') { 
                 ++dst; // if there is an escaped double quote, then the double quote is preserved
+                escapedQuote = false;
             } else {
                 if (*(src + 1) == '\\') {
                     ++dst;
