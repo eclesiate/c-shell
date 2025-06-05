@@ -9,6 +9,7 @@
 #include <dirent.h>
 
 static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
+static const char specialChars[] = {'$', '\"', '\'', '\0'};
 
 int handleInputs(const char* input);
 int findExecutableFile(const char* type, char** exepath);
@@ -50,20 +51,18 @@ int handleInputs(const char* input) {
     if (!strcmp(input, "exit 0")) {
         free(inputDupForStrtok);
         return 1;
-    } 
-    else if (!strncmp("echo", input, 4)) { 
+    } else if (!strncmp("echo", input, 4)) { 
         if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
             singleQuotes(inputDupForStrtok + 5);
         } else if (*(input + 5) == '\"') {
-            doubleQuotes(inputDupForStrtok+5);
+            doubleQuotingTest(inputDupForStrtok+5);
         } else {
             int isOutsideQuotes = 1;
             if(strchr(inputDupForStrtok + 5, '\\')) {
                removeBackslash(inputDupForStrtok + 5, isOutsideQuotes);
                printf("%s\n", inputDupForStrtok+5);
-            }
             // below is for edge case where extra whitespaces without backslash get stripped
-            else {
+            } else {
                 char* echoArgs;
                 while((echoArgs = strtok_r(NULL, " ", &saveptr1))) {
                      printf("%s ", echoArgs);
@@ -71,14 +70,13 @@ int handleInputs(const char* input) {
                printf("\n");
             }
         }
-    } 
-    else if (!strncmp(firstArg, "pwd", 3)) {
+    } else if (!strncmp(firstArg, "pwd", 3)) {
         printWorkingDirectory();
-    }
-    else if (!strncmp(firstArg, "cd", 2)) {
+
+    } else if (!strncmp(firstArg, "cd", 2)) {
         changeDir(saveptr1);
-    }
-    else if (!strncmp("type", input, 4)) {
+
+    } else if (!strncmp("type", input, 4)) {
         const char* type = input + 5;
         bool isShellBuiltin = false;
         /*
@@ -96,8 +94,7 @@ int handleInputs(const char* input) {
         if (!isShellBuiltin) {
             if (findExecutableFile(type, &exePath)) {
                 printf("%s is %s\n", type, exePath);
-            } 
-            else {
+            } else {
                 printf("%s: not found\n", type);
             }
         }
@@ -106,8 +103,8 @@ int handleInputs(const char* input) {
     else if (findExecutableFile(firstArg, &exePath)) {
         char* args = strtok_r(NULL, "\t\n\0", &saveptr1);
         runExecutableFile(firstArg, args);
-    } 
-    else {
+        
+    } else {
         printf("%s: command not found\n", input);
     }
     
@@ -213,9 +210,9 @@ void doubleQuotes(const char* arg) {
     char* saveptr;
     char* dupArg = strdup(arg);
     char* ptr = dupArg;
-    if(strchr(ptr, '\\')) {
-        removeBackslash(ptr, isOutsideQuotes);
-    }
+    // if(strchr(ptr, '\\')) {
+    //     removeBackslash(ptr, isOutsideQuotes);
+    // }
     char* msg = strtok_r(ptr, "\"", &saveptr);
     
     if (msg) {
@@ -238,10 +235,44 @@ void doubleQuotes(const char* arg) {
     free(dupArg);
 }
 
+void doubleQuotingTest(char* str) {
+    bool insideQuotes = false;
+    bool escapedQuote = false;
+    char* src;
+    char* dst;
+
+    for (src = dst = str; *src != '\0'; ++src) {
+        *dst = *src;
+        if (!insideQuotes) {
+            if (*dst == '\"' && !escapedQuote) {
+                insideQuotes = true;
+            } else if (*dst != '\\') { 
+                ++dst; // if there is an escaped double quote, then the double quote is preserved
+            // outside of quotes, the char proceeding a backslash is preserved: do not increment dst ptr to omit '\'
+            } else {
+                if (*(src + 1) == '\\') {
+                    ++dst;
+                } else if (*(src + 1) == '\"') { escapedQuote = true; }
+            }
+        } else {
+            if (*dst == '\"' && !escapedQuote) {
+                insideQuotes = false;
+            } else if (*dst != '\\') { 
+                ++dst; // if there is an escaped double quote, then the double quote is preserved
+            } else {
+                if (*(src + 1) == '\\') {
+                    ++dst;
+                } else if (*(src + 1) == '\"') { escapedQuote = true; }
+            }
+        }
+    }
+    *dst = '\0';
+    print("%s\n", str);
+}
+
 void removeBackslash(char* str, int isOutsideQuotes) {
     char* src; 
     char* dst;
-    char specialChars[] = {'$', '\\', '\"', '\'', '\0'};
     bool isDoubleBackSlash = false;
 
     for (src = dst = str; *src != '\0'; ++src) {
@@ -260,7 +291,7 @@ void removeBackslash(char* str, int isOutsideQuotes) {
                     break;
                 }
             }
-            if (!isOutsideQuotes) { ++dst; }
+           // if (!isOutsideQuotes) { ++dst; }
            
         }
     }
