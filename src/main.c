@@ -240,6 +240,7 @@ void doubleQuotingTest(char* str) {
     bool insideQuotes = false;
     bool escapedQuote = false;
     bool escapedBackSlash = false;
+    bool isEscaped = false;
     char* src;
     char* dst;
 
@@ -251,8 +252,16 @@ void doubleQuotingTest(char* str) {
             } else if (*dst != '\\') { 
                 ++dst; 
                 escapedQuote = false;// if there is an escaped double quote, then the double quote is preserved
-            // outside of quotes, the char proceeding a backslash is preserved: do not increment dst ptr to omit '\'
+            // strip any leading or trailing whitespaces
+            } if ((*src == ' ') && !isEscaped) {
+                printf(" ");
+                while(*src == ' ') {
+                    ++src;
+                }
+                ++dst;
+            // outside of quotes, the char proceeding a backslash is preserved:, omit the '\' by not incrementing dst ptr
             } else {
+                isEscaped = true;
                 if (*(src + 1) == '\\') {
                     ++dst;
                 } else if (*(src + 1) == '\"') { escapedQuote = true; }
