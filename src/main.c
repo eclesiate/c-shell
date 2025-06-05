@@ -239,6 +239,7 @@ void doubleQuotes(const char* arg) {
 void doubleQuotingTest(char* str) {
     bool insideQuotes = false;
     bool escapedQuote = false;
+    bool escapedBackSlash = false;
     char* src;
     char* dst;
 
@@ -263,9 +264,14 @@ void doubleQuotingTest(char* str) {
                 ++dst; // if there is an escaped double quote, then the double quote is preserved
                 escapedQuote = false;
             } else {
-                if (*(src + 1) == '\\') {
+                if (escapedBackSlash) {
+                    escapedBackSlash = false;
+                } else if (*(src + 1) == '\\') {
                     ++dst;
+                    escapedBackSlash = true;
                 } else if (*(src + 1) == '\"') { escapedQuote = true; }
+                // $ is preserved
+                else if (*(src + 1) != '$') { ++dst; }
             }
         }
     }
