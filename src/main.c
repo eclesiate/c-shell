@@ -252,6 +252,7 @@ void doubleQuotingTest(char* str) {
             } else if (*dst != '\\') { 
                 ++dst; 
                 escapedQuote = false;// if there is an escaped double quote, then the double quote is preserved
+                isEscaped = false;
             // strip any leading or trailing whitespaces
             } if ((*src == ' ') && !isEscaped) {
                 printf(" ");
