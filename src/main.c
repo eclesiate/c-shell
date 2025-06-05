@@ -255,7 +255,6 @@ void doubleQuotingTest(char* str) {
                 isEscaped = false;
             // strip any leading or trailing whitespaces
             } if ((*src == ' ') && !isEscaped) {
-                printf(" ");
                 while(*src == ' ') {
                     ++src;
                 }
