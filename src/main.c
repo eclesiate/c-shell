@@ -55,8 +55,10 @@ int handleInputs(const char* input) {
     } else if (!strncmp("echo", input, 4)) { 
         if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
             singleQuotes(inputDupForStrtok + 5);
+            printf("%s\n", inputDupForStrtok+5);
         } else if (*(input + 5) == '\"') {
             doubleQuotingTest(inputDupForStrtok+5);
+            printf("%s\n", inputDupForStrtok+5);
         } else {
             int isOutsideQuotes = 1;
             if(strchr(inputDupForStrtok + 5, '\\')) {
@@ -71,6 +73,7 @@ int handleInputs(const char* input) {
                printf("\n");
             }
         }
+    
     } else if (!strncmp(firstArg, "pwd", 3)) {
         printWorkingDirectory();
 
@@ -99,9 +102,21 @@ int handleInputs(const char* input) {
                 printf("%s: not found\n", type);
             }
         }
-    } 
+    } else if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
+        // get exe arg after quoted exe name
+        char* tokPtr = inputDupForStrtok + 5;
+        char* quotedExe = strtok(tokPtr, '\'');
+        char* args = strtok(NULL, '\'');
+        while (*args == ' ') { ++args; } // remove leading whitespaces
+        if (findExecutableFile(quotedExe, &exePath)) {
+            runExecutableFile(quotedExe, args);
+        }
+    } else if (*(input + 5) == '\"') {
+
+    
+
     // RUN EXECUTABLE FILE: parse first argument and search for its .exe
-    else if (findExecutableFile(firstArg, &exePath)) {
+    } else if (findExecutableFile(firstArg, &exePath)) {
         char* args = strtok_r(NULL, "\t\n\0", &saveptr1);
         runExecutableFile(firstArg, args);
         
@@ -116,6 +131,7 @@ int handleInputs(const char* input) {
 
 /*
 @params - exePath: double pointer since the length of the path is dependent on what the PATH is (not known at compile)
+NOTE: I just realized that there already is an access() function that can do this... oh well, I coded it from scratch I guess.
 */
 int findExecutableFile(const char *type, char **exePath) {
     // search for executable programs in PATH
@@ -154,8 +170,9 @@ int findExecutableFile(const char *type, char **exePath) {
     return 0;
 }
 
-void runExecutableFile(const char* exeName, char* args) { // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string?
-    size_t buflen = strlen(exeName) + strlen(args) + 2;
+ // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string
+void runExecutableFile(const char* exeName, char* args) {
+    size_t buflen = strlen(exeName) + strlen(args) + 2; // +1 for space
     char* exeCmd = malloc(buflen);
     snprintf(exeCmd, buflen, "%s %s", exeName, args);
     int returnCode = system(exeCmd);
@@ -254,8 +271,8 @@ void doubleQuotingTest(char* str) {
                 while(*src == ' ') {
                     ++src;
                 }
-                --src;
                 ++dst;
+                continue; // we don't want to do an additional ++src
             } else if (*dst != '\\') { 
                 ++dst; 
                 escapedQuote = false;// if there is an escaped double quote, then the double quote is preserved
@@ -286,7 +303,7 @@ void doubleQuotingTest(char* str) {
         }
     }
     *dst = '\0';
-    printf("%s\n", str);
+    
 }
 
 void removeBackslash(char* str, int isOutsideQuotes) {
