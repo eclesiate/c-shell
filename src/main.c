@@ -18,6 +18,7 @@ void printWorkingDirectory();
 void changeDir(char* savePtr);
 void singleQuotes(const char* arg);
 void doubleQuotes(const char* arg);
+void doubleQuotingTest(char* str);
 void removeBackslash(char* str, int isOutsideQuotes);
 
 int main(int argc, char* argv[]) {
@@ -267,7 +268,7 @@ void doubleQuotingTest(char* str) {
         }
     }
     *dst = '\0';
-    print("%s\n", str);
+    printf("%s\n", str);
 }
 
 void removeBackslash(char* str, int isOutsideQuotes) {
@@ -286,7 +287,7 @@ void removeBackslash(char* str, int isOutsideQuotes) {
                 continue;        
             }
             // if proceding char of of the special chars \ $
-            for (char* i = specialChars; *i != '\0'; ++i) {
+            for (const char* i = specialChars; *i != '\0'; ++i) {
                 if (*(src + 1) == *i) {
                     break;
                 }
