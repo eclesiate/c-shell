@@ -105,8 +105,8 @@ int handleInputs(const char* input) {
     } else if (*(input + 5) == '\'') { // assumes that the single quote is 1 index after the white space
         // get exe arg after quoted exe name
         char* tokPtr = inputDupForStrtok + 5;
-        char* quotedExe = strtok(tokPtr, '\'');
-        char* args = strtok(NULL, '\'');
+        char* quotedExe = strtok(tokPtr, "\'");
+        char* args = strtok(NULL, "\'");
         while (*args == ' ') { ++args; } // remove leading whitespaces
         if (findExecutableFile(quotedExe, &exePath)) {
             runExecutableFile(quotedExe, args);
