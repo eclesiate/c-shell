@@ -113,7 +113,10 @@ char** tokenize(char* line) {
             while(*ptr == ' ') {
                 ++ptr;
             }
-            if (start != ptr) { memmove(start, ptr, strlen(ptr) + 1); }
+            if (start != ptr) { 
+                memmove(start, ptr, strlen(ptr) + 1); 
+                ptr = start;
+            }
 
             if (*ptr == '\0') break; // reached the end
 
@@ -180,7 +183,7 @@ char** tokenize(char* line) {
             default: 
                 while (*ptr) {
                     // preserve backslashed literal
-                    if (*ptr == '\\' && (ptr[1] == '"' || ptr[1] == '\\' || ptr[1] == '$' || ptr[1] == ' ')) {
+                    if (*ptr == '\\') {
                         memmove(ptr, ptr + 1, strlen(ptr + 1) + 1);
                     // unescaped space signals start of new token
                     } else if (*ptr == ' ') {
