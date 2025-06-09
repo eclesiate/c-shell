@@ -287,7 +287,7 @@ void runExecutableFile(char** argv, char* fullpath) {
         perror("fork failed before running exe");
         exit(1);
     } else if (!pid) { // child process
-        execv(fullpath, &argv[1]);
+        execv(fullpath, argv);
         perror("execv");
     } else { // parent process
         int status;
