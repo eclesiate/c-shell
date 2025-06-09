@@ -82,7 +82,7 @@ int handleInputs(const char* input) {
 
     } else {
         printf("found\n");
-        char* str;
+        char* str = malloc(200);
         strcat(str, argv[0]);
         strcat(str, " ");
         strcat(str, argv[1]);
