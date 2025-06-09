@@ -53,7 +53,7 @@ int handleInputs(const char* input) {
     char* exePath = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
 
     char** argv = tokenize(ptr);
-    printf("%s, %s\n", argv[0], argv[1]);
+    //printf("%s, %s\n", argv[0], argv[1]);
     if (!strncmp(argv[0], "exit", 4) && !strncmp(argv[1], "0", 1)) {
         free(inputDup);
         return 1;
@@ -72,13 +72,21 @@ int handleInputs(const char* input) {
 
     // run unquoted or quoted executable from PATH
     } else if (findExecutableFile(argv[0], &exePath)) {
-        runExecutableFile(argv);
+        char* str;
+        strcat(str, argv[0]);
+        strcat(str, " ");
+        strcat(str, argv[1]);
+        printf("found\n");
+        system(str);
+        //runExecutableFile(argv);
         free(exePath);
 
     } else {
         printf("%s: command not found\n", input);
     }
-    
+    for (size_t i = 1; argv[i]; ++i) {
+        free(argv[i]);
+    }
     free(inputDup);
     return 0;
 }
