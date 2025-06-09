@@ -53,7 +53,7 @@ int handleInputs(const char* input) {
     char* exePath = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
 
     char** argv = tokenize(ptr);
-    printf("%s, %s\n", argv[0], argv[1]);
+    //printf("%s, %s\n", argv[0], argv[1]);
     if (!strncmp(argv[0], "exit", 4) && !strncmp(argv[1], "0", 1)) {
         free(inputDup);
         return 1;
@@ -180,7 +180,7 @@ char** tokenize(char* line) {
             default: 
                 while (*ptr) {
                     // preserve backslashed literal
-                    if (*ptr == '\\') {
+                    if (*ptr == '\\' && (ptr[1] == '"' || ptr[1] == '\\' || ptr[1] == '$' || ptr[1] == ' ')) {
                         memmove(ptr, ptr + 1, strlen(ptr + 1) + 1);
                     // unescaped space signals start of new token
                     } else if (*ptr == ' ') {
