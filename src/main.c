@@ -14,7 +14,7 @@ static const char specialChars[] = {'$', '\"', '\'', NULL};
 int handleInputs(const char* input);
 char** tokenize(char* line);
 int findExecutableFile(const char* filename, char** exepath);
-void runExecutableFile(const char* exeName, char* args);
+void runExecutableFile(char** argv);
 void typeCmd(char** arg, char** exePath);
 void echoCmd(char** msg);
 void printWorkingDirectory();
@@ -71,9 +71,8 @@ int handleInputs(const char* input) {
         typeCmd(argv, &exePath);
 
     // run unquoted or quoted executable from PATH
-    } else if (findExecutableFile(argv[9], &exePath)) {
-        char* args = strtok_r(NULL, "\t\n\0", &saveptr1);
-        runExecutableFile(argv[0], argv[1]);
+    } else if (findExecutableFile(argv[0], &exePath)) {
+        runExecutableFile(argv);
         free(exePath);
 
     } else {
@@ -279,16 +278,22 @@ int findExecutableFile(const char *filename, char **exePath) {
     return 0;
 }
 
- // TODO. add support for multiple args, for now this is hardcoded to just get the rest of the input string
-void runExecutableFile(const char* exeName, char* args) {
-    size_t buflen = strlen(exeName) + strlen(args) + 2; // +1 for space
+void runExecutableFile(char** argv) {
+    size_t buflen = 0;
+    for (size_t i = 0; argv[i]; ++i) {
+        buflen += strlen(argv[i]) + 1; // for space char
+    }
     char* exeCmd = malloc(buflen);
-    snprintf(exeCmd, buflen, "%s %s", exeName, args);
+    strcat(exeCmd, argv[0]);
+    for (size_t i = 1; argv[i]; ++i) {
+        strcat(exeCmd, " ");
+        strcat(exeCmd, argv[i]);
+    }
     int returnCode = system(exeCmd);
     free(exeCmd);
     // This is not robust error handling but I don't think it matters for now
     if(returnCode == -1) {
-        printf("Failed to execute file %s, return code: %d", exeName, returnCode);
+        printf("Failed to execute file %s, return code: %d", argv[0], returnCode);
     } 
 }
 
@@ -310,7 +315,7 @@ void changeDir(char** argv) {
         return;
     }
     if (!strncmp(targetPath, "~", 1)) {
-        const char* home = getenv("HOME");
+        char* home = getenv("HOME");
         targetPath = home;
     }
     if (chdir(targetPath)) {
