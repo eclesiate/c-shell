@@ -83,14 +83,17 @@ int handleInputs(const char* input) {
     } else {
         printf("found\n");
         char* str = malloc(200);
+        str[0] = '\0';                      // now it’s a valid empty string
         strcat(str, argv[0]);
         strcat(str, " ");
         strcat(str, argv[1]);
         system(str);
-        printf("%s: command not found\n", input);
+        //printf("%s: command not found\n", input);
+        free(str);
     }
     for (size_t i = 1; argv[i]; ++i) {
         free(argv[i]);
+        if (!argv[i+1]) free(argv[i+1]);
     }
     free(inputDup);
     return 0;
