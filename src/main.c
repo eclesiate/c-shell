@@ -9,7 +9,7 @@
 #include <dirent.h>
 
 static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
-static const char specialChars[] = {'$', '\"', '\'', NULL};
+static const char specialChars[] = {'$', '\"', '\'', '\0'};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
