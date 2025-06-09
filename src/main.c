@@ -7,13 +7,15 @@
 
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
 int findExecutableFile(const char* filename, char** exepath);
-void runExecutableFile(char** argv);
+void runExecutableFile(char** argv, char* fullpath);
 void typeCmd(char** arg, char** exePath);
 void echoCmd(char** msg);
 void printWorkingDirectory();
@@ -69,28 +71,14 @@ int handleInputs(const char* input) {
     } else if (!strncmp(argv[0], "type", 4)) {
         typeCmd(argv, &exePath);
 
-    // run unquoted or quoted executable from PATH
-    // } else if (findExecutableFile(argv[0], &exePath)) {
-    //     char* str;
-    //     strcat(str, argv[0]);
-    //     strcat(str, " ");
-    //     strcat(str, argv[1]);
-    //     printf("found\n");
-    //     system(str);
-    //runExecutableFile(argv);
-    //     free(exePath);
+    } else if (findExecutableFile(argv[0], &exePath)) {
+        runExecutableFile(argv, exePath);
+        free(exePath);
 
     } else {
-       char* fullpath = NULL;
-        if (findExecutableFile(argv[0], &fullpath)) {
-            char cmd[PATH_MAX + 1 + 100] = {0};
-            snprintf(cmd, sizeof cmd, "%s %s", fullpath, argv[1]);
-            system(cmd);
-            free(fullpath);
-        } else {
-            printf("%s: not found\n", argv[0]);
-        }
+        printf("%s: not found\n", argv[0]);
     }
+
     for (size_t i = 1; argv[i]; ++i) {
         free(argv[i]);
         if (!argv[i+1]) free(argv[i+1]);
@@ -292,23 +280,20 @@ int findExecutableFile(const char *filename, char **exePath) {
     return 0;
 }
 
-void runExecutableFile(char** argv) {
-    size_t buflen = 0;
-    for (size_t i = 0; argv[i]; ++i) {
-        buflen += strlen(argv[i]) + 1; // for space char
+void runExecutableFile(char** argv, char* fullpath) {
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork failed before running exe");
+        exit(1);
+    } else if (!pid) { // child process
+        execv(fullpath, &argv[1]);
+        perror("execv");
+    } else { // parent process
+        int status;
+        waitpid(pid, &status, 0);
     }
-    char* exeCmd = malloc(buflen);
-    strcat(exeCmd, argv[0]);
-    for (size_t i = 1; argv[i]; ++i) {
-        strcat(exeCmd, " ");
-        strcat(exeCmd, argv[i]);
-    }
-    int returnCode = system(exeCmd);
-    free(exeCmd);
-    // This is not robust error handling but I don't think it matters for now
-    if(returnCode == -1) {
-        printf("Failed to execute file %s, return code: %d", argv[0], returnCode);
-    } 
+
+    
 }
 
 void printWorkingDirectory() {
