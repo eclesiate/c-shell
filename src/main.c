@@ -81,15 +81,15 @@ int handleInputs(const char* input) {
     //     free(exePath);
 
     } else {
-        printf("found\n");
-        char* str = malloc(200);
-        str[0] = '\0';                      // now it’s a valid empty string
-        strcat(str, argv[0]);
-        strcat(str, " ");
-        strcat(str, argv[1]);
-        system(str);
-        //printf("%s: command not found\n", input);
-        free(str);
+       char* fullpath = NULL;
+        if (findExecutableFile(argv[0], &fullpath)) {
+            char cmd[PATH_MAX + 1 + 100] = {0};
+            snprintf(cmd, sizeof cmd, "%s %s", fullpath, argv[1]);
+            system(cmd);
+            free(fullpath);
+        } else {
+            printf("%s: not found\n", argv[0]);
+        }
     }
     for (size_t i = 1; argv[i]; ++i) {
         free(argv[i]);
