@@ -9,7 +9,6 @@
 #include <dirent.h>
 
 static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
-static const char specialChars[] = {'$', '\"', '\'', '\0'};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
@@ -71,17 +70,23 @@ int handleInputs(const char* input) {
         typeCmd(argv, &exePath);
 
     // run unquoted or quoted executable from PATH
-    } else if (findExecutableFile(argv[0], &exePath)) {
+    // } else if (findExecutableFile(argv[0], &exePath)) {
+    //     char* str;
+    //     strcat(str, argv[0]);
+    //     strcat(str, " ");
+    //     strcat(str, argv[1]);
+    //     printf("found\n");
+    //     system(str);
+    //     //runExecutableFile(argv);
+    //     free(exePath);
+
+    } else {
         char* str;
         strcat(str, argv[0]);
         strcat(str, " ");
         strcat(str, argv[1]);
         printf("found\n");
         system(str);
-        //runExecutableFile(argv);
-        free(exePath);
-
-    } else {
         printf("%s: command not found\n", input);
     }
     for (size_t i = 1; argv[i]; ++i) {
@@ -117,13 +122,8 @@ char** tokenize(char* line) {
         if (state == OUTSIDE) {
             // strip leading whitespaces before starting new token
             // * since extra spaces between tokens are collapsed to just one
-            char* start = ptr;
             while(*ptr == ' ') {
                 ++ptr;
-            }
-            if (start != ptr) { 
-                memmove(start, ptr, strlen(ptr) + 1); 
-                ptr = start;
             }
 
             if (*ptr == '\0') break; // reached the end
