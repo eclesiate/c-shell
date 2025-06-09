@@ -72,7 +72,7 @@ int handleInputs(const char* input) {
         typeCmd(argv, &exePath);
 
     } else if (findExecutableFile(argv[0], &exePath)) {
-        printf("helloworld\n");
+        printf("helloworld\t%s\n", exePath);
         runExecutableFile(argv, exePath);
         free(exePath);
 
