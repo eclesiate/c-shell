@@ -51,7 +51,7 @@ int handleInputs(const char* input) {
     // since I dont know the size of exePath, declare as NULL and pass it's address into findExecutableFile()
     char* exePath = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
 
-    char** argv = tokenize(ptr);
+    // char** argv = tokenize(ptr);
     printf("%s, %s\n", argv[0], argv[1]);
     if (!strncmp(argv[0], "exit", 4) && !strncmp(argv[1], "0", 1)) {
         free(inputDup);
@@ -77,15 +77,15 @@ int handleInputs(const char* input) {
     //     strcat(str, argv[1]);
     //     printf("found\n");
     //     system(str);
-    //     //runExecutableFile(argv);
+    //runExecutableFile(argv);
     //     free(exePath);
 
     } else {
+        printf("found\n");
         char* str;
         strcat(str, argv[0]);
         strcat(str, " ");
         strcat(str, argv[1]);
-        printf("found\n");
         system(str);
         printf("%s: command not found\n", input);
     }
