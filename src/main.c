@@ -72,7 +72,6 @@ int handleInputs(const char* input) {
         typeCmd(argv, &exePath);
 
     } else if (findExecutableFile(argv[0], &exePath)) {
-        printf("helloworld\t%s\n", exePath);
         runExecutableFile(argv, exePath);
         free(exePath);
 
@@ -80,7 +79,7 @@ int handleInputs(const char* input) {
         printf("%s: not found\n", argv[0]);
     }
 
-    for (size_t i = 1; argv[i]; ++i) {
+    for (size_t i = 0; argv[i]; ++i) {
         free(argv[i]);
         if (!argv[i+1]) free(argv[i+1]);
     }
