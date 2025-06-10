@@ -55,7 +55,7 @@ int handleInputs(const char* input) {
 
     char** argv = tokenize(ptr);
 
-    if (*argv) { // failed to tokenize 
+    if (!(*argv)) { // failed to tokenize 
         free(inputDup);
         free(argv);
         return 0; 
@@ -66,7 +66,7 @@ int handleInputs(const char* input) {
             free(argv);
             return 1;
         }
-        
+
     } else if (!strncmp(argv[0], "echo", 4)) { 
         echoCmd(argv);
     
