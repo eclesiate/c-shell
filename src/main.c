@@ -60,8 +60,8 @@ int handleInputs(const char* input) {
         free(argv);
         return 0; 
     }
-    else if (argv[1]) {
-        if (!strncmp(argv[0], "exit", 4) && !strncmp(argv[1], "0", 1)) {
+    else if (!strncmp(argv[0], "exit", 4)) {
+        if (argv[1] && !strncmp(argv[1], "0", 1)) {
             free(inputDup);
             free(argv);
             return 1;
