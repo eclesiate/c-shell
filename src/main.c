@@ -78,7 +78,8 @@ int handleInputs(const char* input) {
     } else {
         printf("%s: not found\n", argv[0]);
     }
-    
+
+    free(argv);
     free(inputDup);
     return 0;
 }
@@ -275,7 +276,9 @@ int findExecutableFile(const char *filename, char **exePath) {
     if (exeFound) return 1;
     return 0;
 }
-
+/// @brief creates child process that executes command
+/// @param argv list of tokens
+/// @param fullpath path of exe, decision was made to use this in conjunction with 
 void runExecutableFile(char** argv, char* fullpath) {
     pid_t pid = fork();
     if (pid < 0) {
