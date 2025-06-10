@@ -221,7 +221,7 @@ void typeCmd(char** argv, char** exePath) {
     // if not recognized as builtin command then search for executable files in PATH
     if (!isShellBuiltin) {
         if (findExecutableFile(type, exePath)) {
-            printf("%s is %s\n", type, exePath);
+            printf("%s is %s\n", type, *exePath);
         } else {
             printf("%s: not found\n", type);
         }
@@ -288,8 +288,6 @@ void runExecutableFile(char** argv, char* fullpath) {
         int status;
         waitpid(pid, &status, 0);
     }
-
-    
 }
 
 void printWorkingDirectory() {
