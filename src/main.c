@@ -74,15 +74,17 @@ int handleInputs(const char* input) {
     } else if (findExecutableFile(argv[0], &exePath)) {
         runExecutableFile(argv, exePath);
         free(exePath);
-
+        
     } else {
         printf("%s: not found\n", argv[0]);
     }
-
-    for (size_t i = 0; argv[i]; ++i) {
-        free(argv[i]);
-        if (!argv[i+1]) free(argv[i+1]);
+    if (argv) {
+        for (size_t i = 0; argv[i]; ++i) {
+            free(argv[i]);
+            if (!argv[i+1]) free(argv[i+1]);
+        }
     }
+    
     free(inputDup);
     return 0;
 }
