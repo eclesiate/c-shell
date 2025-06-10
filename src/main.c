@@ -78,12 +78,6 @@ int handleInputs(const char* input) {
     } else {
         printf("%s: not found\n", argv[0]);
     }
-    if (argv) {
-        for (size_t i = 0; argv[i]; ++i) {
-            free(argv[i]);
-            if (!argv[i+1]) free(argv[i+1]);
-        }
-    }
     
     free(inputDup);
     return 0;
