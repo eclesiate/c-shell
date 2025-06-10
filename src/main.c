@@ -54,11 +54,19 @@ int handleInputs(const char* input) {
     char* exePath = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
 
     char** argv = tokenize(ptr);
-    // printf("%s, %s\n", argv[0], argv[1]);
-    if (!strncmp(argv[0], "exit", 4) && !strncmp(argv[1], "0", 1)) {
-        free(inputDup);
-        return 1;
 
+    if (*argv) { // failed to tokenize 
+        free(inputDup);
+        free(argv);
+        return 0; 
+    }
+    else if (argv[1]) {
+        if (!strncmp(argv[0], "exit", 4) && !strncmp(argv[1], "0", 1)) {
+            free(inputDup);
+            free(argv);
+            return 1;
+        }
+        
     } else if (!strncmp(argv[0], "echo", 4)) { 
         echoCmd(argv);
     
@@ -73,12 +81,11 @@ int handleInputs(const char* input) {
 
     } else if (findExecutableFile(argv[0], &exePath)) {
         runExecutableFile(argv, exePath);
-        free(exePath);
-        
+
     } else {
         printf("%s: not found\n", argv[0]);
     }
-
+    if(exePath) free(exePath);
     free(argv);
     free(inputDup);
     return 0;
