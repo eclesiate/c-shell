@@ -224,6 +224,8 @@ char** tokenize(char* line) {
 int handleOutputRedir(char** argv) {
     bool outReder = false;
     bool errReder = false;
+    int append = 0;
+    int trunc = 0;
     int savedstream = -1;
     int stream = -1;
     int fd = 0;
@@ -234,8 +236,12 @@ int handleOutputRedir(char** argv) {
     for (int i = 0; argv[i]; ++i) {
         outReder = !strcmp(argv[i], ">") || !strcmp(argv[i], "1>");
         errReder = !strcmp(argv[i], "2>");
-        if (outReder) {
+        if (!strcmp(argv[i], "1>>") || !strcmp(argv[i], ">>")) {
+            append = O_APPEND;
+        }
+        if (outReder || append) {
             stream = STDOUT_FILENO;
+            trunc = append ? 0 : O_TRUNC; // trunc and append are  mutually exclusive
         } else if (errReder) {
             stream = STDERR_FILENO;
         } else {
@@ -249,13 +255,13 @@ int handleOutputRedir(char** argv) {
             perror("fflush before dup2");
             exit(1);
         }
-        fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
+        fd = open(fname, O_CREAT | trunc | O_RDWR | append, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
         if (fd == -1) {
             perror("open file");
             exit(1);
         }
-        savedstream = dup(stream); // REMEMBER TO SAVE ORIGINAL STDOUT FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDOUT INSTEAD OF THE FILE
-        result = dup2(fd, stream); // stdout_fileno now refers to fd
+        savedstream = dup(stream); // REMEMBER TO SAVE ORIGINAL STDx FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDx INSTEAD OF THE FILE
+        result = dup2(fd, stream); // stdx_fileno now refers to fd
         if (result == -1) {
             perror("dup2 fd");
             exit(1);
@@ -275,7 +281,7 @@ int handleOutputRedir(char** argv) {
     } else {
         perror("failed to find executable");
     }
-    // once executed, revert back to stdout!
+    // once executed, revert back to stdx!
     if (savedstream >= 0) {
         dup2(savedstream, stream);
         close(savedstream); // always close duplicate fds
