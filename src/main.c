@@ -220,16 +220,17 @@ char** tokenize(char* line) {
 
 int handleOutputRedir(char** argv) {
     char* found = NULL;
+    int savedStdout = -1;
     int fd = 0;
     int result = -1;
-    int output_idx = -1;
+    int outputIdx = -1;
     char* fname = NULL;
 
     for (int i = 0; argv[i]; ++i) {
         found = strchr(argv[i], '>');
         if (!found) continue;
 
-        output_idx = i;
+        outputIdx = i;
         if (!strcmp(argv[i], ">") || !strcmp(argv[i], "1>")) {
             fname =  argv[i+1];
         } else {
@@ -248,6 +249,7 @@ int handleOutputRedir(char** argv) {
             perror("open file");
             exit(1);
         }
+        savedStdout = dup(STDOUT_FILENO);
         result = dup2(fd, STDOUT_FILENO);
         if (result == -1) {
             perror("dup2 fd");
@@ -257,15 +259,22 @@ int handleOutputRedir(char** argv) {
         break;
     }
 
-    if (output_idx < 0) return 1;
+    if (outputIdx < 0) return 1;
 
     char* exePath = NULL;
     if (findExecutableFile(argv[0], &exePath)) {
-        argv[output_idx] = NULL; // don't treat any tokens past here as arguments
+        argv[outputIdx] = NULL; // don't treat any tokens past here as arguments
         runExecutableFile(argv, exePath);
         free(exePath);
     } else {
         perror("failed to find executable");
+    }
+    if (savedStdout >= 0) {
+        dup2(savedStdout, STDOUT_FILENO);
+        close(savedStdout); // always close duplicate fds
+    } else {
+        perror("stdout");
+        exit(1);
     }
     return 0;
 }
