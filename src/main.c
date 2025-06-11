@@ -63,7 +63,7 @@ int handleInputs(const char* input) {
     if (!handleOutputRedir(argv)) {
         free(inputDup);
         free(argv);
-        return 1;
+        return 0;
     
     } else if (!strncmp(argv[0], "exit", 4)) {
         if (argv[1] && !strncmp(argv[1], "0", 1)) {
