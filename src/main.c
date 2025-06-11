@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/wait.h>
@@ -222,7 +223,7 @@ void handleOutputRedir(char** argv) {
     char* fname = NULL;
 
     for (int i = 0; argv[i]; ++i) {
-        found = strchr(arg, ">");
+        found = strchr(argv[i], '>');
         if (!found) continue;
 
         output_idx = i;
@@ -235,8 +236,11 @@ void handleOutputRedir(char** argv) {
                 fname = argv[i] + 1;
             }
         }
-
-        fd = open(fname, O_CREAT | O_TRUNC, S_IRWXU) // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
+        if (fflush(NULL)) {
+            perror("fflush before dup2");
+            exit(1);
+        }
+        fd = open(fname, O_CREAT | O_TRUNC, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
         if (fd == -1) {
             perror("open file");
             exit(1);
