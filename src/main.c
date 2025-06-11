@@ -292,6 +292,7 @@ int findExecutableFile(const char *filename, char **exePath) {
 /// @param fullpath path of exe, decision was made to use this in conjunction with 
 void runExecutableFile(char** argv, char* fullpath) {
     pid_t pid = fork();
+    int status = 0;
     if (pid < 0) {
         perror("fork failed before running exe");
         exit(1);
@@ -299,8 +300,9 @@ void runExecutableFile(char** argv, char* fullpath) {
         execv(fullpath, argv);
         perror("execv");
     } else { // parent process
-        int status;
-        waitpid(pid, &status, 0);
+        do {
+            waitpid(pid, &status, WUNTRACED) // reap childprocess
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status)); // wait while the child did NOT end normally AND did NOT end by a signal
     }
 }
 
