@@ -242,12 +242,13 @@ int handleOutputRedir(char** argv) {
         } else if (!strcmp(argv[i], "2>>") || !strcmp(argv[i], ">>")) {
             appendErr = O_APPEND;
         }
+        // set open() flags and stream depending on command
         if (outReder || appendOut) {
             stream = STDOUT_FILENO;
-            trunc = appendOut ? 0 : O_TRUNC; // trunc and append are  mutually exclusive
+            trunc = appendOut ? 0 : O_TRUNC; // trunc and append are mutually exclusive
         } else if (errReder || appendErr) {
             stream = STDERR_FILENO;
-            trunc = appendErr ? 0 : O_TRUNC; // trunc and append are  mutually exclusive
+            trunc = appendErr ? 0 : O_TRUNC;
         } else {
             continue;
         }
@@ -255,7 +256,7 @@ int handleOutputRedir(char** argv) {
         outputIdx = i;
         fname = argv[i + 1];
        
-        if (fflush(NULL)) {
+        if (fflush(NULL)) { //* flush buffer before changing which fd stdx refers to, that way we dont get any undefined behaviour (was a pain to debug!)
             perror("fflush before dup2");
             exit(1);
         }
