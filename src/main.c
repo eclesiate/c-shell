@@ -224,7 +224,8 @@ char** tokenize(char* line) {
 int handleOutputRedir(char** argv) {
     bool outReder = false;
     bool errReder = false;
-    int append = 0;
+    int appendOut = 0;
+    int appendErr = 0;
     int trunc = 0;
     int savedstream = -1;
     int stream = -1;
@@ -237,13 +238,16 @@ int handleOutputRedir(char** argv) {
         outReder = !strcmp(argv[i], ">") || !strcmp(argv[i], "1>");
         errReder = !strcmp(argv[i], "2>");
         if (!strcmp(argv[i], "1>>") || !strcmp(argv[i], ">>")) {
-            append = O_APPEND;
+            appendOut = O_APPEND;
+        } else if (!strcmp(argv[i], "1>>") || !strcmp(argv[i], ">>")) {
+            appendErr = O_APPEND;
         }
-        if (outReder || append) {
+        if (outReder || appendOut) {
             stream = STDOUT_FILENO;
-            trunc = append ? 0 : O_TRUNC; // trunc and append are  mutually exclusive
-        } else if (errReder) {
+            trunc = appendOut ? 0 : O_TRUNC; // trunc and append are  mutually exclusive
+        } else if (errReder || appendErr) {
             stream = STDERR_FILENO;
+            trunc = appendErr ? 0 : O_TRUNC; // trunc and append are  mutually exclusive
         } else {
             continue;
         }
