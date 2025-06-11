@@ -239,7 +239,7 @@ int handleOutputRedir(char** argv) {
         errReder = !strcmp(argv[i], "2>");
         if (!strcmp(argv[i], "1>>") || !strcmp(argv[i], ">>")) {
             appendOut = O_APPEND;
-        } else if (!strcmp(argv[i], "1>>") || !strcmp(argv[i], ">>")) {
+        } else if (!strcmp(argv[i], "2>>") || !strcmp(argv[i], ">>")) {
             appendErr = O_APPEND;
         }
         if (outReder || appendOut) {
