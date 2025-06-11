@@ -14,16 +14,14 @@ static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
+void handleOutputRedir(char** argv);
 int findExecutableFile(const char* filename, char** exepath);
 void runExecutableFile(char** argv, char* fullpath);
 void typeCmd(char** arg, char** exePath);
 void echoCmd(char** msg);
 void printWorkingDirectory();
 void changeDir(char** argv);
-void singleQuotes(const char* arg);
-void doubleQuotes(const char* arg);
-void doubleQuotingTest(char* str);
-void removeBackslash(char* str, int isOutsideQuotes);
+
 
 int main(int argc, char* argv[]) {
     while (1) {
@@ -60,13 +58,17 @@ int handleInputs(const char* input) {
         free(argv);
         return 0; 
     }
-    else if (!strncmp(argv[0], "exit", 4)) {
+
+    handleOutputRedir(argv);
+
+    if (!strncmp(argv[0], "exit", 4)) {
         if (argv[1] && !strncmp(argv[1], "0", 1)) {
             free(inputDup);
             free(argv);
             return 1;
+        } else {
+            printf("%s: not found\n", argv[0]);
         }
-
     } else if (!strncmp(argv[0], "echo", 4)) { 
         echoCmd(argv);
     
@@ -212,6 +214,52 @@ char** tokenize(char* line) {
     return argv;
 }
 
+void handleOutputRedir(char** argv) {
+    char* found = NULL;
+    int fd = 0;
+    int result = -1;
+    int output_idx = -1;
+    char* fname = NULL;
+
+    for (int i = 0; argv[i]; ++i) {
+        found = strchr(arg, ">");
+        if (!found) continue;
+
+        output_idx = i;
+        if (!strcmp(argv[i], ">") || !strcmp(argv[i], "1>")) {
+            fname =  argv[i+1];
+        } else {
+            if(strstr(argv[i], "1>")) {
+                fname = argv[i] + 2;
+            } else {
+                fname = argv[i] + 1;
+            }
+        }
+
+        fd = open(fname, O_CREAT | O_TRUNC, S_IRWXU) // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
+        if (fd == -1) {
+            perror("open file");
+            exit(1);
+        }
+        result = dup2(fd, STDOUT_FILENO);
+        if (result == -1) {
+            perror("dup2 fd");
+            exit(1);
+        }
+        close(fd);
+        break;
+    }
+
+    if (output_idx < 0) return;
+
+    char* exePath = NULL;
+    if (findExecutableFile(argv[0], &exePath)) {
+        argv[output_idx] = NULL; // don't treat any tokens past here as arguments
+        runExecutableFile(argv, exePath);
+        free(exePath);
+    }
+}
+
 void typeCmd(char** argv, char** exePath) {
     const char* type = argv[1];
     bool isShellBuiltin = false;
@@ -243,6 +291,7 @@ void echoCmd(char** argv) {
     }
     printf("\n");
 }
+
 /// @brief my own version of the access() function that attempts to find a file name in PATH
 /// @param filename executable file to find in PATH
 /// @param exePath buffer that gets malloc'd with full file path
@@ -289,7 +338,7 @@ int findExecutableFile(const char *filename, char **exePath) {
 }
 /// @brief creates child process that executes command
 /// @param argv list of tokens
-/// @param fullpath path of exe, decision was made to use this in conjunction with 
+/// @param fullpath path of exe, decision was made to use this in conjunction with exec instead of exexcvp
 void runExecutableFile(char** argv, char* fullpath) {
     pid_t pid = fork();
     int status = 0;
@@ -301,7 +350,7 @@ void runExecutableFile(char** argv, char* fullpath) {
         perror("execv");
     } else { // parent process
         do {
-            waitpid(pid, &status, WUNTRACED) // reap childprocess
+            waitpid(pid, &status, WUNTRACED); // reap childprocess
         } while (!WIFEXITED(status) && !WIFSIGNALED(status)); // wait while the child did NOT end normally AND did NOT end by a signal
     }
 }
