@@ -232,8 +232,8 @@ int handleOutputRedir(char** argv) {
     char* fname = NULL;
 
     for (int i = 0; argv[i]; ++i) {
-        outReder = !strcmp(argv[i], '>') || !strcmp(argv[i], '1>');
-        errReder = !strstr(argv[i], "2>");
+        outReder = !strcmp(argv[i], ">") || !strcmp(argv[i], "1>");
+        errReder = !strcmp(argv[i], "2>");
         if (outReder) {
             stream = STDOUT_FILENO;
         } else if (errReder) {
