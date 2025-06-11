@@ -244,7 +244,7 @@ int handleOutputRedir(char** argv) {
             perror("fflush before dup2");
             exit(1);
         }
-        fd = open(fname, O_CREAT | O_TRUNC, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
+        fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
         if (fd == -1) {
             perror("open file");
             exit(1);
