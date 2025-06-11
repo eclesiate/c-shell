@@ -265,7 +265,7 @@ int handleOutputRedir(char** argv) {
         runExecutableFile(argv, exePath);
         free(exePath);
     } else {
-        perror("could not find: %s\n", argv[0]);
+        perror("failed to find executable");
     }
     return 0;
 }
