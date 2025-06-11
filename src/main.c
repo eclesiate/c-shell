@@ -243,6 +243,7 @@ int handleOutputRedir(char** argv) {
         }
 
         outputIdx = i;
+        fname = argv[i + 1];
        
         if (fflush(NULL)) {
             perror("fflush before dup2");
