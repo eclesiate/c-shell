@@ -217,29 +217,33 @@ char** tokenize(char* line) {
     }
     return argv;
 }
-
+/// @brief
+///        THE CHAR(S) ">" MUST BE THEIR OWN TOKEN (SEPERATED BY SPACES) TO BE PARSED CORRECTLY
+/// @param argv 
+/// @return 
 int handleOutputRedir(char** argv) {
-    char* found = NULL;
-    int savedStdout = -1;
+    bool outReder = false;
+    bool errReder = false;
+    int savedstream = -1;
+    int stream = -1;
     int fd = 0;
     int result = -1;
     int outputIdx = -1;
     char* fname = NULL;
 
     for (int i = 0; argv[i]; ++i) {
-        found = strchr(argv[i], '>');
-        if (!found) continue;
+        outReder = !strcmp(argv[i], '>') || !strcmp(argv[i], '1>');
+        errReder = !strstr(argv[i], "2>");
+        if (outReder) {
+            stream = STDOUT_FILENO;
+        } else if (errReder) {
+            stream = STDERR_FILENO;
+        } else {
+            continue;
+        }
 
         outputIdx = i;
-        if (!strcmp(argv[i], ">") || !strcmp(argv[i], "1>")) {
-            fname =  argv[i+1];
-        } else {
-            if(strstr(argv[i], "1>")) {
-                fname = argv[i] + 2;
-            } else {
-                fname = argv[i] + 1;
-            }
-        }
+       
         if (fflush(NULL)) {
             perror("fflush before dup2");
             exit(1);
@@ -249,8 +253,8 @@ int handleOutputRedir(char** argv) {
             perror("open file");
             exit(1);
         }
-        savedStdout = dup(STDOUT_FILENO);
-        result = dup2(fd, STDOUT_FILENO);
+        savedstream = dup(stream); // REMEMBER TO SAVE ORIGINAL STDOUT FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDOUT INSTEAD OF THE FILE
+        result = dup2(fd, stream); // stdout_fileno now refers to fd
         if (result == -1) {
             perror("dup2 fd");
             exit(1);
@@ -261,6 +265,7 @@ int handleOutputRedir(char** argv) {
 
     if (outputIdx < 0) return 1;
 
+    // execute the command whose output gets redirected
     char* exePath = NULL;
     if (findExecutableFile(argv[0], &exePath)) {
         argv[outputIdx] = NULL; // don't treat any tokens past here as arguments
@@ -269,9 +274,10 @@ int handleOutputRedir(char** argv) {
     } else {
         perror("failed to find executable");
     }
-    if (savedStdout >= 0) {
-        dup2(savedStdout, STDOUT_FILENO);
-        close(savedStdout); // always close duplicate fds
+    // once executed, revert back to stdout!
+    if (savedstream >= 0) {
+        dup2(savedstream, stream);
+        close(savedstream); // always close duplicate fds
     } else {
         perror("stdout");
         exit(1);
