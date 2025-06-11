@@ -15,7 +15,7 @@ static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
-void handleOutputRedir(char** argv);
+int handleOutputRedir(char** argv);
 int findExecutableFile(const char* filename, char** exepath);
 void runExecutableFile(char** argv, char* fullpath);
 void typeCmd(char** arg, char** exePath);
@@ -60,9 +60,12 @@ int handleInputs(const char* input) {
         return 0; 
     }
 
-    handleOutputRedir(argv);
-
-    if (!strncmp(argv[0], "exit", 4)) {
+    if (!handleOutputRedir(argv)) {
+        free(inputDup);
+        free(argv);
+        return 1;
+    
+    } else if (!strncmp(argv[0], "exit", 4)) {
         if (argv[1] && !strncmp(argv[1], "0", 1)) {
             free(inputDup);
             free(argv);
@@ -215,7 +218,7 @@ char** tokenize(char* line) {
     return argv;
 }
 
-void handleOutputRedir(char** argv) {
+int handleOutputRedir(char** argv) {
     char* found = NULL;
     int fd = 0;
     int result = -1;
@@ -254,14 +257,17 @@ void handleOutputRedir(char** argv) {
         break;
     }
 
-    if (output_idx < 0) return;
+    if (output_idx < 0) return 1;
 
     char* exePath = NULL;
     if (findExecutableFile(argv[0], &exePath)) {
         argv[output_idx] = NULL; // don't treat any tokens past here as arguments
         runExecutableFile(argv, exePath);
         free(exePath);
+    } else {
+        perror("could not find: %s\n", argv[0]);
     }
+    return 0;
 }
 
 void typeCmd(char** argv, char** exePath) {
