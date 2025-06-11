@@ -257,21 +257,25 @@ int findExecutableFile(const char *filename, char **exePath) {
     bool exeFound = false;
     // search through the list of all executable files in each PATH directory
     while (currPath) {
-        struct dirent** exeList;
+        struct dirent** exeList = NULL; // MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
         int numExe = scandir(currPath, &exeList, NULL, alphasort);
-        while (numExe--) {
-            if (!strcmp(exeList[numExe]->d_name, filename)) {
+        if (numExe <= 0) { // error or 0 entries in array
+            currPath = strtok(NULL, ":");
+            if (exeList) free(exeList);
+            continue;
+        }
+        for (int i = 0; i < numExe; ++i) {
+            if (!strcmp(exeList[i]->d_name, filename)) {
                 exeFound = true;
-                //  free the current entry, and all remaining entries before breaking to avoid memory leak!
-                while (numExe--) {
-                    free(exeList[numExe]);
-                }
                 size_t buflen = strlen(currPath) + strlen(filename) + 2; // +1 for '/'
                 *exePath = malloc(buflen);
                 snprintf(*exePath, buflen, "%s/%s", currPath, filename);
                 break;
             }
-            free(exeList[numExe]);
+        }
+
+        for (int i = 0; i < numExe; ++i) {
+            free(exeList[i]);
         }
         free(exeList);
 
