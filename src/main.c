@@ -1,5 +1,3 @@
-#define _DEFAULT_SOURCE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,15 +27,17 @@ void printWorkingDirectory();
 void changeDir(char** argv);
 
 char** autocomplete(const char* text, int start, int end);
-char* commandGenerator(const char* text, int state);
+char* builtinGenerator(const char* text, int state);
 void populatePrefixTree(Trie *root);
+
+Trie* builtin_tree_root = NULL;
 
 int main(int argc, char* argv[]) {
 
     char* line = NULL;
     initializeReadline();
 
-    Trie* builtin_tree_root = trieCreate(); 
+    builtin_tree_root = trieCreate(); 
     populatePrefixTree(builtin_tree_root);
     
     while (1) {
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 
         free(line);
     }
-
+    trieFree(builtin_tree_root);
     return 0;
 }
 
@@ -76,7 +76,31 @@ char** autocomplete(const char* text, int start, int end) {
 }
 
 char* builtinGenerator(const char* text, int state) {
-    
+    static char** arrayOfMatches {};
+    static int len = 0;
+    static int list_idx = 0;
+
+    if (!state) {
+        if ((arrayOfMatches)) {
+            // free unreturned matches
+            for (int k = list_idx; arrayOfMatches[k] != NULL; ++k) {
+                free(arrayOfMatches[k]);
+            }
+            free(arrayOfMatches);
+        }
+        len = strlen(text);
+        list_idx = 0;
+        TrieType builtin = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
+        Trie* subtree = getPrefixSubtree(builtin_tree_root, (char*)text, &builtin);
+        if (subtree) {
+            arrayOfMatches = assembleTree(subtree, &builtin);
+        } else {
+            arrayOfMatches = malloc(sizeof(char*));
+            *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
+        }
+        
+    }
+    return arrayOfMatches[list_idx++];
 }
 
 

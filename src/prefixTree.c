@@ -73,19 +73,45 @@ Trie* getPrefixSubtree(Trie* root, char* prefix, TrieType* type) {
     }
 }
 
-Trie* assembleTree(Trie* root, TrieType* type) {
-    assert(root);
+void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type) {
+    assert(count && cap && type);
+    // resize array
+    if (*count >= *cap) {
+        *cap = (*cap == 0) ? INIT_MATCHES_BUF_SIZE : (*cap) * 2; 
+        *words = realloc(*words, (*cap) * sizeof(char*));
+    }
+    // * remember "*" has operator precendence, so you must inclose what you want dereferenced with brackets
+    *(words)[(*count)++] = strndup(type->autocompleteBuf, type->autocompleteBufSz); // *strndup adds null terminator
+}
 
+void _assembleTreeHelper(Trie* root, char*** words, size_t* count, size_t* cap, TrieType* type) {
     if (root->isEnd) {
-        
+        pushWord(words, count, cap, type);
     }
+    // DFS search all the nodes
     for (size_t i = 0; i < ARRAY_LEN(root->children); ++i) {
-        if (root->children[(char) i] != NULL) {
-            
-            return getSubtree(root->children[(char) i]);
-        }
+        if (root->children[i] != NULL) {
+            acBufPush((char) i, type);
+            _assembleTreeHelper(root->children[i], words, count, type, type);
+            acBufPop(type);
+        }   
     }
-    
+}
+
+char** assembleTree(Trie* root, TrieType* type) {
+    assert(root);
+    char** words = NULL;
+    size_t count = 0;
+    size_t cap = 0;
+    // populate words array of possible autocomplete matches
+    _assembleTreeHelper(root, &words, &count, &cap, type);
+    // push NULL sentinel into array
+    if (count >= cap) {
+        cap = (cap == 0) ? INIT_MATCHES_BUF_SIZE : cap * 2; 
+        words = realloc(words, (cap) * sizeof(char*)); // TODO. maybe use small pointers or something
+    }
+    words[count++] = NULL; //* generator function for gnu readline requires null sentinel!
+    return words; //* GNU readline will free the mallocd strings in the array here
 }
 
 void trieFree(Trie* root) {
