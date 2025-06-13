@@ -10,9 +10,14 @@
 #include <dirent.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+#include "prefixTree.h"
 
 static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
+void initializeReadline(void);
 int handleInputs(const char* input);
 char** tokenize(char* line);
 int handleOutputRedir(char** argv);
@@ -23,26 +28,58 @@ void echoCmd(char** msg);
 void printWorkingDirectory();
 void changeDir(char** argv);
 
+char** autocomplete(const char* text, int start, int end);
+char* commandGenerator(const char* text, int state);
+void populatePrefixTree(Trie *root);
 
 int main(int argc, char* argv[]) {
+
+    char* line = NULL;
+    initializeReadline();
+
+    Trie* builtin_tree_root = trieCreate(); 
+    populatePrefixTree(builtin_tree_root);
+    
     while (1) {
-        // Flush after every printf, even without \n
-        setbuf(stdout, NULL);
+        line = readline("$ ");
 
-        printf("$ ");
-
-        // Wait for user input
-        char input[100];
-        fgets(input, 100, stdin);
-        input[strcspn(input, "\n")] = '\0'; // replace index of newline escape char with null terminator
+        if (line == NULL) break;
         
-        if (handleInputs(input)) {
+        if (handleInputs(line)) {
             break; // exit cmd
         }
+
+        free(line);
     }
 
     return 0;
 }
+
+void initializeReadline(void) {
+    rl_attempted_completion_function = autocomplete;
+}
+
+char acBuiltinBuf[AC_BUF_CAP];
+size_t acBuiltinBufSz = 0;
+
+void populatePrefixTree(Trie *root) {
+    trieInsert(root, "echo");
+    trieInsert(root, "exit");
+}
+
+char** autocomplete(const char* text, int start, int end) {
+    char** matches = NULL;
+    if (start == 0) { // builtins
+        matches = rl_completion_matches(text, builtinGenerator);
+    }
+    return matches;
+}
+
+char* builtinGenerator(const char* text, int state) {
+    
+}
+
+
 /// @brief tokenizes string for handling, then parses each argument and executes commands
 /// @param input user input 
 /// @return 1 for break command to end program, 0 otherwise
