@@ -1,3 +1,5 @@
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,6 +48,7 @@ int main(int argc, char* argv[]) {
         if (line == NULL) break;
         
         if (handleInputs(line)) {
+            free(line);
             break; // exit cmd
         }
 
@@ -59,8 +62,8 @@ void initializeReadline(void) {
     rl_attempted_completion_function = autocomplete;
 }
 
-char acBuiltinBuf[AC_BUF_CAP];
-size_t acBuiltinBufSz = 0;
+// char acBuiltinBuf[AC_BUF_CAP];
+// size_t acBuiltinBufSz = 0;
 
 void populatePrefixTree(Trie *root) {
     trieInsert(root, "echo");
@@ -76,8 +79,7 @@ char** autocomplete(const char* text, int start, int end) {
 }
 
 char* builtinGenerator(const char* text, int state) {
-    static char** arrayOfMatches {};
-    static int len = 0;
+    static char** arrayOfMatches = NULL;
     static int list_idx = 0;
 
     if (!state) {
@@ -88,7 +90,6 @@ char* builtinGenerator(const char* text, int state) {
             }
             free(arrayOfMatches);
         }
-        len = strlen(text);
         list_idx = 0;
         TrieType builtin = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
         Trie* subtree = getPrefixSubtree(builtin_tree_root, (char*)text, &builtin);
@@ -108,7 +109,7 @@ char* builtinGenerator(const char* text, int state) {
 /// @param input user input 
 /// @return 1 for break command to end program, 0 otherwise
 int handleInputs(const char* input) {
-    char* inputDup = strdup(input); // since strtok is destructive 
+    char* inputDup = (char*) strdup(input); // since strtok is destructive 
     char* ptr = inputDup;
     // since I dont know the size of exePath, declare as NULL and pass it's address into findExecutableFile()
     char* exePath = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless

@@ -1,6 +1,8 @@
 /*
 some of the function skeleton code taken from leetcode problem: https://leetcode.com/problems/implement-trie-prefix-tree/
 */
+#define _DEFAULT_SOURCE
+#include "prefixTree.h"
 
 void acBufPush(char x, TrieType* type) {
     assert((type->autocompleteBufSz < AC_BUF_CAP) && type);
@@ -9,7 +11,7 @@ void acBufPush(char x, TrieType* type) {
 
 void acBufPop(TrieType* type) {
     assert((type->autocompleteBufSz > 0) && type);
-    --autocompleteBufSz;
+    --type->autocompleteBufSz;
 }
 
 
@@ -27,18 +29,17 @@ Trie* trieCreate(void) {
 }
 
 void trieInsert(Trie* root, char* word) {
-    assert(word || root);
-    
-    for (size_t i = 0, Trie* currNode = root; i <= strlen(word); ++i) {
-        if (word[i] == '\0') {
-            currNode->isEnd = true;
-            return;
+    assert(root && word);
+
+    Trie* currNode = root;
+    for (size_t i = 0; word[i] != '\0'; ++i) {
+        unsigned char idx = (unsigned char)word[i];
+        if (!currNode->children[idx]) {
+            currNode->children[idx] = allocNode();
         }
-        if (!currNode->children[(size_t) word[i]]) {
-            currNode->children[(size_t) word[i]] = allocNode();
-            currNode = root->children[(size_t) word[i]];
-        }
+        currNode = currNode->children[idx];
     }
+    currNode->isEnd = true;
 }
 
 bool trieSearch(Trie* root, char* word) { // left as recursive, don't think ill be using this
@@ -48,29 +49,28 @@ bool trieSearch(Trie* root, char* word) { // left as recursive, don't think ill 
         return false;
     }
     // if we have reached the end of the prefix, then we have found it
-    if ( *prefix == '\0') {
+    if ( *word == '\0') {
         if (root->isEnd == true) {
             return true;    
         }
         return false;
     }
-    return trieSearch(root->children[(size_t) *prefix], ++word);
+    return trieSearch(root->children[(size_t) *word], word + 1);
 }
 
 // returns sub tree, inserts prefix into buffer, which will be used when we are assembling the subtree
 Trie* getPrefixSubtree(Trie* root, char* prefix, TrieType* type) {
-    assert(root);
-
-    for (size_t i = 0, Trie* currNode = root; i <= strlen(prefix); ++i) {
-        if (prefix[i] == '\0') {
-            return currNode;
-        }
-        if (currNode == NULL) {
+    assert(root && prefix);
+    Trie* curr = root;
+    for (size_t i = 0; prefix[i] != '\0'; ++i) {
+        unsigned char idx = (unsigned char)prefix[i];
+        if (!curr->children[idx]) {
             return NULL;
         }
-        currNode = currNode->children[(size_t) prefix[i]];
+        curr = curr->children[idx];
         acBufPush(prefix[i], type);
     }
+    return curr;
 }
 
 void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type) {
@@ -81,7 +81,7 @@ void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type) {
         *words = realloc(*words, (*cap) * sizeof(char*));
     }
     // * remember "*" has operator precendence, so you must inclose what you want dereferenced with brackets
-    *(words)[(*count)++] = strndup(type->autocompleteBuf, type->autocompleteBufSz); // *strndup adds null terminator
+    (*words)[(*count)++] = strndup(type->autocompleteBuf, type->autocompleteBufSz); // *strndup adds null terminator
 }
 
 void _assembleTreeHelper(Trie* root, char*** words, size_t* count, size_t* cap, TrieType* type) {
@@ -92,7 +92,7 @@ void _assembleTreeHelper(Trie* root, char*** words, size_t* count, size_t* cap, 
     for (size_t i = 0; i < ARRAY_LEN(root->children); ++i) {
         if (root->children[i] != NULL) {
             acBufPush((char) i, type);
-            _assembleTreeHelper(root->children[i], words, count, type, type);
+            _assembleTreeHelper(root->children[i], words, count, cap, type);
             acBufPop(type);
         }   
     }

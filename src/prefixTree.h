@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdbool.h> 
 #include <stdio.h>
 #include <assert.h>
@@ -18,7 +20,7 @@ typedef struct TrieType TrieType;
 struct TrieType {
     char autocompleteBuf[AC_BUF_CAP];
     size_t autocompleteBufSz;
-}
+};
 // insert into dynamic array of words, helper to assembleTree
 void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type);
 void acBufPush(char x, TrieType* type);
