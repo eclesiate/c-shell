@@ -94,7 +94,7 @@ char* builtinGenerator(const char* text, int state) {
     static char** arrayOfMatches = NULL;
     static int list_idx = 0;
 
-    if (!state) {
+    if (state == 0) {
         if ((arrayOfMatches)) {
             // free unreturned matches
             for (int k = list_idx; arrayOfMatches[k] != NULL; ++k) {
