@@ -17,7 +17,6 @@
 
 static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
-void initializeReadline(void);
 int handleInputs(const char* input);
 char** tokenize(char* line);
 int handleOutputRedir(char** argv);
@@ -28,6 +27,8 @@ void echoCmd(char** msg);
 void printWorkingDirectory();
 void changeDir(char** argv);
 
+void initializeReadline(void);
+static int tabHandler(int count, int key);
 char** autocomplete(const char* text, int start, int end);
 char* builtinGenerator(const char* text, int state);
 void populatePrefixTree(Trie *root);
@@ -60,6 +61,16 @@ int main(int argc, char* argv[]) {
 
 void initializeReadline(void) {
     rl_attempted_completion_function = autocomplete;
+    rl_bind_key('\t', tabHandler);
+}
+
+static int tabHandler(int count, int key) {
+    if (rl_complete(count, key) == 0) {
+        fprintf(stdout, "\x07");
+        fflush(stdout);
+        rl_redisplay();
+    }
+    return 0;
 }
 
 // char acBuiltinBuf[AC_BUF_CAP];
@@ -72,6 +83,7 @@ void populatePrefixTree(Trie *root) {
 
 char** autocomplete(const char* text, int start, int end) {
     char** matches = NULL;
+    rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here
     if (start == 0) { // builtins
         matches = rl_completion_matches(text, builtinGenerator);
     }
