@@ -30,6 +30,7 @@ void changeDir(char** argv);
 void initializeReadline(void);
 static int tabHandler(int count, int key);
 char** autocomplete(const char* text, int start, int end);
+void displayMatches(char **matches, int num_matches, int max_length);
 char* builtinGenerator(const char* text, int state);
 void populatePrefixTree(Trie *root);
 void populateExeTree(Trie* root);
@@ -66,6 +67,7 @@ int main(int argc, char* argv[]) {
 
 void initializeReadline(void) {
     rl_attempted_completion_function = autocomplete;
+    rl_completion_display_matches_hook = displayMatches;
     rl_bind_key('\t', tabHandler);
 }
 
@@ -78,10 +80,14 @@ static int tabHandler(int count, int key) {
         rl_redisplay();
         tabbed = true;
     } else if (tabbed) {
-        rl_insert_completions(count, key);
+        rl_possible_completions(count, key);
         tabbed = false;
     }
     return 0;
+}
+
+void displayMatches(char **matches, int num_matches, int max_length) {
+    rl_display_match_list(matches, num_matches, max_len);
 }
 
 // char acBuiltinBuf[AC_BUF_CAP];
