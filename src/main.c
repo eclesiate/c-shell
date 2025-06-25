@@ -149,7 +149,7 @@ char* builtinGenerator(const char* text, int state) {
         } else {
             TrieType exe = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
             Trie* exeSubtree = getPrefixSubtree(exe_tree_root, (char*) text, &exe);
-            if (exeSubTree) {
+            if (exeSubtree) {
                 arrayOfMatches = assembleTree(exeSubtree, &exe);
             } else {
                 arrayOfMatches = malloc(sizeof(char*));
