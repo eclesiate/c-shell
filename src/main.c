@@ -32,6 +32,7 @@ static int tabHandler(int count, int key);
 char** autocomplete(const char* text, int start, int end);
 char* builtinGenerator(const char* text, int state);
 void populatePrefixTree(Trie *root);
+void populateExeTree(Trie* root);
 
 Trie* builtin_tree_root = NULL;
 Trie* exe_tree_root = NULL;
