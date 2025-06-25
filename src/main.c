@@ -72,7 +72,7 @@ void initializeReadline(void) {
 }
 
 static int tabHandler(int count, int key) {
-    static short tabCnt = 0;
+    static short tab_press_count = 0;
 
     int n = rl_complete(count, key);
 
