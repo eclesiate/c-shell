@@ -121,14 +121,13 @@ rl_redisplay();
 }
 
 void displayMatches(char **matches, int num_matches, int max_length) {
-    fprintf(stdout, "\n");
+    printf("\n");
     for (int i = 0; i < num_matches; ++i) {
-        fprintf(stdout, "%s  ", matches[i]);
+        printf("%s  ", matches[i]);
     }
-    fprintf(stdout, "\n");
+    printf("\n");
     rl_on_new_line();
     rl_redisplay();
-
 }
 
 // char acBuiltinBuf[AC_BUF_CAP];
