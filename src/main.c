@@ -145,11 +145,17 @@ char* builtinGenerator(const char* text, int state) {
         Trie* subtree = getPrefixSubtree(builtin_tree_root, (char*)text, &builtin);
         if (subtree) {
             arrayOfMatches = assembleTree(subtree, &builtin);
+        // if not found in builtin_tree, then search exe_tree
         } else {
-            arrayOfMatches = malloc(sizeof(char*));
-            *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
+            TrieType exe = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
+            Trie* exeSubtree = getPrefixSubtree(exe_tree_root, (char*) text, &exe);
+            if (exeSubTree) {
+                arrayOfMatches = assembleTree(exeSubtree, &exe);
+            } else {
+                arrayOfMatches = malloc(sizeof(char*));
+                *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
+            }
         }
-        
     }
 
     if (!arrayOfMatches || !arrayOfMatches[list_idx]) {
