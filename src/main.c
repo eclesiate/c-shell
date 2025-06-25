@@ -72,16 +72,24 @@ void initializeReadline(void) {
 }
 
 static int tabHandler(int count, int key) {
-    static bool tabbed = false;
-
-    if (rl_complete(count, key) == 0) {
+    static short tabCnt = 0;
+    int num_matches = rl_complete(count, key);
+    ++tabCnt;
+    if (num_matches == 0) {
         fprintf(stdout, "\x07");
         fflush(stdout);
         rl_redisplay();
-        tabbed = true;
-    } else if (tabbed) {
-        rl_possible_completions(count, key);
-        tabbed = false;
+        tabCnt = 0;
+    } else if (num_matches > 1) {
+        if (tabCnt > 1) {
+            rl_possible_completions(count, key);
+            tabCnt = 0;
+        } else {
+            fprintf(stdout, "\x07");
+            fflush(stdout);
+            rl_redisplay();
+        }
+        
     }
     return 0;
 }
@@ -92,6 +100,9 @@ void displayMatches(char **matches, int num_matches, int max_length) {
         fprintf(stdout, "%s  ", matches[i]);
     }
     fprintf(stdout, "\n");
+    rl_on_new_line();
+    rl_redisplay();
+
 }
 
 // char acBuiltinBuf[AC_BUF_CAP];
