@@ -87,7 +87,11 @@ static int tabHandler(int count, int key) {
 }
 
 void displayMatches(char **matches, int num_matches, int max_length) {
-    rl_display_match_list(matches, num_matches, max_length);
+    fprintf(stdout, "\n");
+    for (int i = 0; i < num_matches; ++i) {
+        fprintf(stdout, "%s  ", matches[i])
+    }
+    fprintf(stdout, "\n");
 }
 
 // char acBuiltinBuf[AC_BUF_CAP];
