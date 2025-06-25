@@ -75,15 +75,11 @@ static int tabHandler(int count, int key) {
     static bool tabbed = false;
 
     if (tabbed) {
-        // second TAB -> list matches
         rl_possible_completions(count, key);
         tabbed = false;
     } else {
-        // first TAB -> detect ambiguity
-        int n = rl_complete(count, key);
-        if (n == 0) {
-            // no matches or ambiguous: bell
-            putchar('\a');
+        if (rl_complete(count, key) == 0) {
+            printf("\x07");
             fflush(stdout);
             rl_redisplay();
             tabbed = true;
@@ -94,7 +90,7 @@ static int tabHandler(int count, int key) {
 
 void displayMatches(char **matches, int num_matches, int max_length) {
     printf("\n");
-    for (int i = 0; i < num_matches; ++i) {
+    for (int i = 1; i < num_matches; ++i) {
         printf("%s  ", matches[i]);
     }
     printf("\n");
