@@ -5,7 +5,6 @@
 
 int main() {
     Trie* root = trieCreate();
-    TrieType t = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
 
     const char* words[] = {
         "apple", "applesauce", "app", "application", "applet",

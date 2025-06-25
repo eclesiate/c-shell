@@ -34,6 +34,7 @@ char* builtinGenerator(const char* text, int state);
 void populatePrefixTree(Trie *root);
 
 Trie* builtin_tree_root = NULL;
+Trie* exe_tree_root = NULL;
 
 int main(int argc, char* argv[]) {
 
@@ -42,6 +43,9 @@ int main(int argc, char* argv[]) {
 
     builtin_tree_root = trieCreate(); 
     populatePrefixTree(builtin_tree_root);
+
+    exe_tree_root = trieCreate();
+    populateExeTree(exe_tree_root);
     
     while (1) {
         line = readline("$ ");
@@ -81,6 +85,39 @@ void populatePrefixTree(Trie *root) {
     trieInsert(root, "exit");
 }
 
+/// @brief add every executable file in PATH to the prefix tree
+/// @param root root of executable file tree
+/// @return void
+void populateExeTree(Trie *root) {
+   // search for executable programs in PATH
+    const char* path = getenv("PATH");
+    // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
+    char* pathCopy = strdup(path);
+    char* scan = pathCopy;
+    char* currPath = strtok(scan, ":");
+
+    while (currPath) { // this code assumes that only directories are in PATH, maybe call stat and S_ISDIR() to verify 
+        struct dirent** exeList = NULL; // *MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
+        int numExe = scandir(currPath, &exeList, NULL, alphasort);
+        if (numExe <= 0) { // error or 0 entries in array
+            currPath = strtok(NULL, ":");
+            if (exeList) free(exeList);
+            continue;
+        }
+        for (int i = 0; i < numExe; ++i) {
+            trieInsert(root, exeList[i]->d_name);
+        }
+
+        for (int i = 0; i < numExe; ++i) {
+            free(exeList[i]);
+        }
+        free(exeList);
+
+        currPath = strtok(NULL, ":");
+    }
+    free(pathCopy);
+}
+
 char** autocomplete(const char* text, int start, int end) {
     char** matches = NULL;
     rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here
@@ -112,6 +149,10 @@ char* builtinGenerator(const char* text, int state) {
             *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
         }
         
+    }
+
+    if (!arrayOfMatches || !arrayOfMatches[list_idx]) {
+        return NULL;
     }
     return arrayOfMatches[list_idx++];
 }
@@ -417,7 +458,7 @@ int findExecutableFile(const char *filename, char **exePath) {
     bool exeFound = false;
     // search through the list of all executable files in each PATH directory
     while (currPath) {
-        struct dirent** exeList = NULL; // MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
+        struct dirent** exeList = NULL; // *MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
         int numExe = scandir(currPath, &exeList, NULL, alphasort);
         if (numExe <= 0) { // error or 0 entries in array
             currPath = strtok(NULL, ":");
