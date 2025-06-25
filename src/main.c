@@ -73,24 +73,50 @@ void initializeReadline(void) {
 
 static int tabHandler(int count, int key) {
     static short tabCnt = 0;
-    int num_matches = rl_complete(count, key);
-    ++tabCnt;
-    if (num_matches == 0) {
-        fprintf(stdout, "\x07");
-        fflush(stdout);
-        rl_redisplay();
-        tabCnt = 0;
-    } else if (num_matches > 1) {
-        if (tabCnt > 1) {
-            rl_possible_completions(count, key);
-            tabCnt = 0;
-        } else {
-            fprintf(stdout, "\x07");
-            fflush(stdout);
-            rl_redisplay();
-        }
+
+    int n = rl_complete(count, key);
+
+if (n <= 0) {
+  // no matches: bell & reset
+  putchar('\a');
+  tab_press_count = 0;
+}
+else if (n == 1) {
+  // single match: clear any previous “multi-match” state
+  tab_press_count = 0;
+}
+else {
+  // multiple matches
+  tab_press_count++;
+  if (tab_press_count == 1) {
+    // first TAB on >1 matches: just bell
+    putchar('\a');
+  } else {
+    // second TAB: list them
+    rl_possible_completions(count, key);
+    tab_press_count = 0;
+  }
+}
+rl_redisplay();
+
+    // int num_matches = rl_complete(count, key);
+    // ++tabCnt;
+    // if (num_matches == 0) {
+    //     fprintf(stdout, "\x07");
+    //     fflush(stdout);
+    //     rl_redisplay();
+    //     tabCnt = 0;
+    // } else if (num_matches > 1) {
+    //     if (tabCnt > 1) {
+    //         rl_possible_completions(count, key);
+    //         tabCnt = 0;
+    //     } else {
+    //         fprintf(stdout, "\x07");
+    //         fflush(stdout);
+    //         rl_redisplay();
+    //     }
         
-    }
+    // }
     return 0;
 }
 
