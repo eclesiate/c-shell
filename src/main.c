@@ -90,7 +90,7 @@ static int tabHandler(int count, int key) {
 
 void displayMatches(char **matches, int num_matches, int max_length) {
     printf("\n");
-    for (int i = 1; i < num_matches; ++i) {
+    for (int i = 1; i <= num_matches; ++i) {
         printf("%s  ", matches[i]);
     }
     printf("\n");
