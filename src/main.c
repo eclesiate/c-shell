@@ -93,7 +93,7 @@ else {
     putchar('\a');
   } else {
     // second TAB: list them
-    rl_possible_completions(count, key);
+    rl_complete_internal('!');
     tab_press_count = 0;
   }
 }
