@@ -70,10 +70,16 @@ void initializeReadline(void) {
 }
 
 static int tabHandler(int count, int key) {
+    static bool tabbed = false;
+
     if (rl_complete(count, key) == 0) {
         fprintf(stdout, "\x07");
         fflush(stdout);
         rl_redisplay();
+        tabbed = true;
+    } else if (tabbed) {
+        rl_complete_internal('!');
+        tabbed = false;
     }
     return 0;
 }
@@ -499,7 +505,7 @@ int findExecutableFile(const char *filename, char **exePath) {
 /// @param argv list of tokens
 /// @param fullpath path of exe, decision was made to use this in conjunction with exec instead of exexcvp
 void runExecutableFile(char** argv, char* fullpath) {
-    pid_t pid = fork();
+    pid_t pid = fork(); // gotta fork otherwise if we run execv on the current process, its process image gets replaced and we can never return back to the current program
     int status = 0;
     if (pid < 0) {
         perror("fork failed before running exe");
