@@ -78,7 +78,7 @@ static int tabHandler(int count, int key) {
         rl_redisplay();
         tabbed = true;
     } else if (tabbed) {
-        rl_complete_internal('!');
+        rl_possible_completions(count, key);
         tabbed = false;
     }
     return 0;
