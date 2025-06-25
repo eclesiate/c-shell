@@ -87,7 +87,7 @@ static int tabHandler(int count, int key) {
 }
 
 void displayMatches(char **matches, int num_matches, int max_length) {
-    rl_display_match_list(matches, num_matches, max_len);
+    rl_display_match_list(matches, num_matches, max_length);
 }
 
 // char acBuiltinBuf[AC_BUF_CAP];
