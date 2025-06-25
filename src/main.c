@@ -97,8 +97,6 @@ else {
     tab_press_count = 0;
   }
 }
-rl_redisplay();
-
     // int num_matches = rl_complete(count, key);
     // ++tabCnt;
     // if (num_matches == 0) {
