@@ -149,7 +149,9 @@ char** autocomplete(const char* text, int start, int end) {
         if (prefix != NULL) {
             rl_insert_text(prefix + strlen(text));
             rl_redisplay();
-            char* lcp_match [] = {prefix, NULL};
+            char** lcp_match = malloc(sizeof(char*) * 2);
+            lcp_match[0] = prefix;
+            lcp_match[1] = NULL;
             return lcp_match;
         }
     }
@@ -161,10 +163,10 @@ char** autocomplete(const char* text, int start, int end) {
 /// @return mallocd string for longest common prefix (lcp), MUST BE FREE'D BY CALLER 
 char* findLongestCommonPrefix(char** arrOfStrings, const char* text) {
     char** firstMatch = arrOfStrings;
-    char* lcp = *firstMatch
+    char* lcp = *firstMatch;
     int idx = strlen(text) - 1; // current index of lcp
 
-    if ((firstMatch + 1) == NULL) return NULL; // only one match
+    if (*(firstMatch + 1) == NULL) return NULL; // only one match
     
     while (lcp[idx] != '\0') {
         char** iterator = firstMatch + 1;
