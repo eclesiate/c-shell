@@ -158,7 +158,7 @@ char** autocomplete(const char* text, int start, int end) {
             //     free(*match);
             // }
             // free(matches);
-            rl_free_match_list(matches);
+            // rl_free_match_list(matches);
             return NULL;
         }
     }
