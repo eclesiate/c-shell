@@ -75,18 +75,25 @@ void initializeReadline(void) {
 static int tabHandler(int count, int key) {
     static bool tabbed = false;
     rl_completion_suppress_append = 0;
+    
     // upon second consecutive TAB, call possible_completions which hooks to our custom displayMatches() function.
     if (tabbed) {
         rl_possible_completions(count, key);
         tabbed = false;
     } else {
-        if (rl_complete(count, key) == 0) { // print terminal bell or search for longest common prefix
+        int result = rl_complete(count, key);
+        if (result == 0) { 
+            // No completion found - print terminal bell
             printf("\x07");
             fflush(stdout);
+            rl_redisplay();
             tabbed = true;
+        } else {
+            // Completion was successful - reset tabbed flag and redisplay
+            tabbed = false;
+            rl_redisplay();
         }
     }
-    rl_redisplay();
     return 0;
 }
 
