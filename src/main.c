@@ -152,16 +152,16 @@ char** autocomplete(const char* text, int start, int end) {
             rl_replace_line(prefix, 0);
             rl_point = (int)strlen(prefix);
             // rl_insert_text(prefix + strlen(text));
-            rl_redisplay();
-            char** lcp_match = malloc(sizeof(char*) * 2);
-            lcp_match[0] = prefix;
-            lcp_match[1] = NULL;
-            rl_completion_suppress_append = 1; // upon autocompleting with LCP, dont append space
-            for (char** match = matches; *match; ++match) { // free unused matches array
-                free(*match);
-            }
-            free(matches);
-            return lcp_match;
+            // rl_redisplay();
+            // char** lcp_match = malloc(sizeof(char*) * 2);
+            // lcp_match[0] = prefix;
+            // lcp_match[1] = NULL;
+            // rl_completion_suppress_append = 1; // upon autocompleting with LCP, dont append space
+            // for (char** match = matches; *match; ++match) { // free unused matches array
+            //     free(*match);
+            // }
+            // free(matches);
+            return NULL;
         }
     }
     return matches;
