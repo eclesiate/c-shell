@@ -223,9 +223,7 @@ char* builtinGenerator(const char* text, int state) {
             if (exeSubtree) {
                 arrayOfMatches = assembleTree(exeSubtree, &exe);
             } else {
-                arrayOfMatches = NULL;
-                // arrayOfMatches = malloc(sizeof(char*));
-                // *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
+                arrayOfMatches = NULL; // * NO COMPLETIONS POSSIBLE, RETURN NULL TO THEN RING BELL IN TABHANDLER(), took a really long time to debug this... 
             }
         }
     }
