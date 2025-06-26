@@ -152,7 +152,7 @@ char** autocomplete(const char* text, int start, int end) {
             // edge case where found prefix is somehow the exact
             if (strcmp(prefix, text)) {
                 rl_replace_line(prefix, 0);
-                rl_point = lcp_len;
+                rl_point = strken(prefix);
                 free(prefix);
                 return NULL;
             }
