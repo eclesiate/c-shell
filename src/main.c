@@ -74,6 +74,7 @@ void initializeReadline(void) {
 
 static int tabHandler(int count, int key) {
     static bool tabbed = false;
+    rl_completion_suppress_append = 0;
     // upon second consecutive TAB, call possible_completions which hooks to our custom displayMatches() function.
     if (tabbed) {
         rl_possible_completions(count, key);
@@ -152,6 +153,11 @@ char** autocomplete(const char* text, int start, int end) {
             char** lcp_match = malloc(sizeof(char*) * 2);
             lcp_match[0] = prefix;
             lcp_match[1] = NULL;
+            rl_completion_suppress_append = 1;
+            // for (int i = 0; (*matches)[i]; ++i) {
+            //     free(matches[i]);
+            // }
+            // free(matches);
             return lcp_match;
         }
     }
@@ -163,6 +169,9 @@ char** autocomplete(const char* text, int start, int end) {
 /// @return mallocd string for longest common prefix (lcp), MUST BE FREE'D BY CALLER 
 char* findLongestCommonPrefix(char** arrOfStrings, const char* text) {
     char** firstMatch = arrOfStrings;
+    for (char** match = arrOfStrings; *match; ++match) {
+        // fprintf(stdout, "%s\n", *match);
+    }
     char* lcp = *firstMatch;
     int idx = strlen(text) - 1; // current index of lcp
 
@@ -171,8 +180,10 @@ char* findLongestCommonPrefix(char** arrOfStrings, const char* text) {
     while (lcp[idx] != '\0') {
         char** iterator = firstMatch + 1;
         if ((*firstMatch)[idx] == '\0') return strndup(lcp, idx);
+        // printf("Idx: %d\tIterator: %s\n", idx, iterator);
         while(*iterator != NULL) {
-            if (*iterator[idx] == '\0') return strndup(lcp, idx);
+            // printf("\tIterator: %s\n", iterator);
+            if ((*iterator)[idx] == '\0') return strndup(lcp, idx);
             if ((*iterator)[idx] != (*firstMatch)[idx]) return strndup(lcp, idx);
             ++iterator;
         }
