@@ -83,18 +83,15 @@ static int tabHandler(int count, int key) {
         if (rl_complete(count, key) == 0) { // print terminal bell or search for longest common prefix
             printf("\x07");
             fflush(stdout);
-            rl_redisplay();
             tabbed = true;
         }
     }
+    rl_redisplay();
     return 0;
 }
 
 void displayMatches(char **matches, int num_matches, int max_length) {
 
-    if (num_matches <= 0) {
-        return;
-    }
     printf("\n");
     for (int i = 1; i <= num_matches; ++i) {
         printf("%s  ", matches[i]);
