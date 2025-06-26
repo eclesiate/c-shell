@@ -162,7 +162,7 @@ char** autocomplete(const char* text, int start, int end) {
                 free(*match);
             }
             free(matches);
-            return NULL;
+            return lcp_match;
         }
     }
     return matches;
