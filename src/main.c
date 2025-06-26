@@ -93,7 +93,7 @@ static int tabHandler(int count, int key) {
 
 void displayMatches(char **matches, int num_matches, int max_length) {
     printf("\n");
-    for (int i = 0; i < num_matches; ++i) {
+    for (int i = 1; i <= num_matches; ++i) {
         printf("%s  ", matches[i]);
     }
     printf("\n");
@@ -149,10 +149,8 @@ char** autocomplete(const char* text, int start, int end) {
         matches = rl_completion_matches(text, builtinGenerator);
         char* prefix = findLongestCommonPrefix(matches, text);
         if (prefix) {
-            size_t lcp_len   = strlen(prefix);
-            size_t input_len = strlen(text);
-            if (lcp_len > input_len) {
-                // only auto-insert if there *is* extra text to add
+            // edge case where found prefix is somehow the exact
+            if (strcmp(prefix, text)) {
                 rl_replace_line(prefix, 0);
                 rl_point = lcp_len;
                 free(prefix);
