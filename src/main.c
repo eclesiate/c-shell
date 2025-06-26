@@ -146,6 +146,7 @@ char** autocomplete(const char* text, int start, int end) {
     char** matches = NULL;
     rl_attempted_completion_over = 1;
     if (start == 0) {
+        //if (trieSearch(builtin))
         matches = rl_completion_matches(text, builtinGenerator);
         char* prefix = findLongestCommonPrefix(matches, text);
         if (prefix) {
@@ -157,9 +158,8 @@ char** autocomplete(const char* text, int start, int end) {
                 return NULL;
             }
             free(prefix);
-        } else {
-            return NULL;
         }
+        if (!matches) return NULL;
     }
     return matches;
 }
