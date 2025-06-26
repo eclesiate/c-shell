@@ -157,6 +157,8 @@ char** autocomplete(const char* text, int start, int end) {
                 return NULL;
             }
             free(prefix);
+        } else {
+            return NULL;
         }
     }
     return matches;
