@@ -148,7 +148,9 @@ char** autocomplete(const char* text, int start, int end) {
     if (start == 0) { // builtins/exe
         matches = rl_completion_matches(text, builtinGenerator);
         char* prefix = findLongestCommonPrefix(matches, text);
-        if (prefix != NULL && !strcmp(prefix, text)) {
+        if (!strcmp(prefix, text)) return NULL;
+        
+        if (prefix != NULL) {
             rl_replace_line(prefix, 0);
             rl_point = (int)strlen(prefix);
             // rl_insert_text(prefix + strlen(text));
