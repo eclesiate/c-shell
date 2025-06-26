@@ -147,19 +147,19 @@ char** autocomplete(const char* text, int start, int end) {
     if (start == 0) {
         //if (trieSearch(builtin))
         matches = rl_completion_matches(text, builtinGenerator);
-        char* prefix = findLongestCommonPrefix(matches, text);
-        if (prefix) {
-            // edge case where found prefix is somehow the exact original text
-            if (strcmp(prefix, text)) {
-                rl_replace_line(prefix, 0);
-                rl_point = strlen(prefix);
+        if (matches) {
+            char* prefix = findLongestCommonPrefix(matches, text);
+            if (prefix) {
+                // edge case where found prefix is somehow the exact original text
+                if (strcmp(prefix, text)) {
+                    rl_replace_line(prefix, 0);
+                    rl_point = strlen(prefix);
+                    free(prefix);
+                    return NULL;
+                }
                 free(prefix);
-                return NULL;
             }
-            free(prefix);
         }
-
-        if (*matches == NULL) return NULL;
     }
     return matches;
 }
@@ -223,8 +223,9 @@ char* builtinGenerator(const char* text, int state) {
             if (exeSubtree) {
                 arrayOfMatches = assembleTree(exeSubtree, &exe);
             } else {
-                arrayOfMatches = malloc(sizeof(char*));
-                *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
+                arrayOfMatches = NULL;
+                // arrayOfMatches = malloc(sizeof(char*));
+                // *arrayOfMatches = NULL; // * since gnu readline expects mallocd strings from the generator function
             }
         }
     }
