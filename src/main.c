@@ -144,30 +144,62 @@ void populateExeTree(Trie *root) {
 
 char** autocomplete(const char* text, int start, int end) {
     char** matches = NULL;
-    rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here 
-    if (start == 0) { // builtins/exe
+    rl_attempted_completion_over = 1;
+    if (start == 0) {
         matches = rl_completion_matches(text, builtinGenerator);
         char* prefix = findLongestCommonPrefix(matches, text);
-        if (!strcmp(prefix, text)) return NULL;
-        
-        if (prefix != NULL) {
-            rl_replace_line(prefix, 0);
-            rl_point = (int)strlen(prefix);
-            // rl_insert_text(prefix + strlen(text));
-            // rl_redisplay();
-            // char** lcp_match = malloc(sizeof(char*) * 2);
-            // lcp_match[0] = prefix;
-            // lcp_match[1] = NULL;
-            // rl_completion_suppress_append = 1; // upon autocompleting with LCP, dont append space
-            // for (char** match = matches; *match; ++match) { // free unused matches array
-            //     free(*match);
-            // }
-            // free(matches);
-            return NULL;
+        if (prefix) {
+            size_t lcp_len   = strlen(prefix);
+            size_t input_len = strlen(text);
+            if (lcp_len > input_len) {
+                // only auto-insert if there *is* extra text to add
+                rl_replace_line(prefix, 0);
+                rl_point = lcp_len;
+                free(prefix);
+                return NULL;
+            }
+            free(prefix);
         }
     }
     return matches;
 }
+
+
+// char** autocomplete(const char* text, int start, int end) {
+//     char** matches = NULL;
+//     rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here 
+//     if (start == 0) { // builtins/exe
+//         matches = rl_completion_matches(text, builtinGenerator);
+//         char* prefix = findLongestCommonPrefix(matches, text);
+//         if (!strcmp(prefix, text)) {
+            
+//             for (char** match = matches; *match; ++match) { // free unused matches array
+//                free(*match);
+//             }
+//             free(matches);
+//             free(prefix);
+//             return NULL;
+//         }
+        
+//         if (prefix != NULL) {
+//             rl_replace_line(prefix, 0);
+//             rl_point = (int)strlen(prefix);
+//             // rl_insert_text(prefix + strlen(text));
+//             // rl_redisplay();
+//             // char** lcp_match = malloc(sizeof(char*) * 2);
+//             // lcp_match[0] = prefix;
+//             // lcp_match[1] = NULL;
+//             // rl_completion_suppress_append = 1; // upon autocompleting with LCP, dont append space
+//             for (char** match = matches; *match; ++match) { // free unused matches array
+//                 free(*match);
+//             }
+//             free(matches);
+//             free(prefix);
+//             return NULL;
+//         }
+//     }
+//     return matches;
+// }
 /// @brief 
 /// @param arrOfStrings 
 /// @param text 
