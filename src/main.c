@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
         free(line);
     }
     trieFree(builtin_tree_root);
+    trieFree(exe_tree_root);
     return 0;
 }
 
@@ -74,7 +75,7 @@ void initializeReadline(void) {
 
 static int tabHandler(int count, int key) {
     static bool tabbed = false;
-    rl_completion_suppress_append = 0;
+    // rl_completion_suppress_append = 0;
     // upon second consecutive TAB, call possible_completions which hooks to our custom displayMatches() function.
     if (tabbed) {
         rl_possible_completions(count, key);
