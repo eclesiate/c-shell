@@ -91,6 +91,10 @@ static int tabHandler(int count, int key) {
 }
 
 void displayMatches(char **matches, int num_matches, int max_length) {
+
+    if (num_matches <= 0) {
+        return;
+    }
     printf("\n");
     for (int i = 1; i <= num_matches; ++i) {
         printf("%s  ", matches[i]);
@@ -141,31 +145,28 @@ void populateExeTree(Trie *root) {
     free(pathCopy);
 }
 
-char **autocomplete(const char *text, int start, int end) {
-    if (start == 0) {
-        // 1) try your builtinGenerator
-        char **matches = rl_completion_matches(text, builtinGenerator);
-        char *prefix  = findLongestCommonPrefix(matches, text);
-        if (prefix) {
-            // insert the LCP yourself
+char** autocomplete(const char* text, int start, int end) {
+    char** matches = NULL;
+    rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here 
+    if (start == 0) { // builtins/exe
+        matches = rl_completion_matches(text, builtinGenerator);
+        char* prefix = findLongestCommonPrefix(matches, text);
+        if (prefix != NULL) {
             rl_insert_text(prefix + strlen(text));
             rl_redisplay();
-            rl_completion_suppress_append = 1;
-            // **only here** override further attempts…
-            rl_attempted_completion_over = 1;
-            // clean up matches if you need (or rl_free_match_list(matches))
+            char** lcp_match = malloc(sizeof(char*) * 2);
+            lcp_match[0] = prefix;
+            lcp_match[1] = NULL;
+            rl_completion_suppress_append = 1; // upon autocompleting with LCP, dont append space
+            for (char** match = matches; *match; ++match) { // free unused matches array
+                free(*match);
+            }
+            free(matches);
             return NULL;
         }
-        // otherwise let Readline display your builtinGenerator results
-        return matches;
     }
-
-    // start>0: hand back to filename completion
-    rl_attempted_completion_over     = 0;  // allow default fallback
-    rl_completion_suppress_append    = 0;  // normal append behavior
-    return rl_completion_matches(text, rl_filename_completion_function);
+    return matches;
 }
-
 /// @brief 
 /// @param arrOfStrings 
 /// @param text 
