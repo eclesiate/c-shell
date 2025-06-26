@@ -85,6 +85,8 @@ static int tabHandler(int count, int key) {
             printf("\x07");
             fflush(stdout);
             tabbed = true;
+        } else {
+            tabbed = false;
         }
     }
     rl_redisplay();
