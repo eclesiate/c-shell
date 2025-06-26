@@ -150,7 +150,7 @@ char** autocomplete(const char* text, int start, int end) {
         char* prefix = findLongestCommonPrefix(matches, text);
         if (prefix != NULL) {
             rl_replace_line(prefix, 0);
-            rl_point((int)strlen(prefix));
+            rl_point = (int)strlen(prefix);
             // rl_insert_text(prefix + strlen(text));
             rl_redisplay();
             char** lcp_match = malloc(sizeof(char*) * 2);
