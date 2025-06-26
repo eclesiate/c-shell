@@ -30,6 +30,7 @@ void changeDir(char** argv);
 void initializeReadline(void);
 static int tabHandler(int count, int key);
 char** autocomplete(const char* text, int start, int end);
+char* findLongestCommonPrefix(char** arrOfStrings, const char* text);
 void displayMatches(char **matches, int num_matches, int max_length);
 char* builtinGenerator(const char* text, int state);
 void populatePrefixTree(Trie *root);
@@ -73,12 +74,12 @@ void initializeReadline(void) {
 
 static int tabHandler(int count, int key) {
     static bool tabbed = false;
-
+    // upon second consecutive TAB, call possible_completions which hooks to our custom displayMatches() function.
     if (tabbed) {
         rl_possible_completions(count, key);
         tabbed = false;
     } else {
-        if (rl_complete(count, key) == 0) {
+        if (rl_complete(count, key) == 0) { // print terminal bell or search for longest common prefix
             printf("\x07");
             fflush(stdout);
             rl_redisplay();
@@ -141,13 +142,49 @@ void populateExeTree(Trie *root) {
 
 char** autocomplete(const char* text, int start, int end) {
     char** matches = NULL;
-    rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here
+    rl_attempted_completion_over = 1; // don't use default completion even if no matches were found here 
     if (start == 0) { // builtins
         matches = rl_completion_matches(text, builtinGenerator);
+        char* prefix = findLongestCommonPrefix(matches, text);
+        if (prefix != NULL) {
+            rl_insert_text(prefix + strlen(text));
+            rl_redisplay();
+            char* lcp_match [] = {prefix, NULL};
+            return lcp_match;
+        }
     }
     return matches;
 }
+/// @brief 
+/// @param arrOfStrings 
+/// @param text 
+/// @return mallocd string for longest common prefix (lcp), MUST BE FREE'D BY CALLER 
+char* findLongestCommonPrefix(char** arrOfStrings, const char* text) {
+    char** firstMatch = arrOfStrings;
+    char* lcp = *firstMatch
+    int idx = strlen(text) - 1; // current index of lcp
 
+    if ((firstMatch + 1) == NULL) return NULL; // only one match
+    
+    while (lcp[idx] != '\0') {
+        char** iterator = firstMatch + 1;
+        if ((*firstMatch)[idx] == '\0') return strndup(lcp, idx);
+        while(*iterator != NULL) {
+            if (*iterator[idx] == '\0') return strndup(lcp, idx);
+            if ((*iterator)[idx] != (*firstMatch)[idx]) return strndup(lcp, idx);
+            ++iterator;
+        }
+        ++idx;
+    }
+
+    return strndup(lcp, idx); // strndup adds the null terminator if not in duplicated bytes
+}
+
+
+/// @brief 
+/// @param text 
+/// @param state 
+/// @return 
 char* builtinGenerator(const char* text, int state) {
     static char** arrayOfMatches = NULL;
     static int list_idx = 0;
@@ -360,7 +397,7 @@ char** tokenize(char* line) {
     return argv;
 }
 /// @brief
-///        THE CHAR(S) ">" MUST BE THEIR OWN TOKEN (SEPERATED BY SPACES) TO BE PARSED CORRECTLY
+///        * THE CHAR(S) ">" MUST BE THEIR OWN TOKEN (SEPERATED BY SPACES) TO BE PARSED CORRECTLY
 /// @param argv 
 /// @return 
 int handleOutputRedir(char** argv) {
