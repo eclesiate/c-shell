@@ -19,9 +19,17 @@ static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
+
 int handleOutputRedir(char** argv);
+
+int _spawnProcess(int input_fd, int output_fd, char** command);
+int* _getPipelineIndices(char** argv);
+int forkPipes(char** argv, int* pipe_idx_arr, int n);
+int handlePipelines(char** argv);
+
 int findExecutableFile(const char* filename, char** exepath);
 void runExecutableFile(char** argv, char* fullpath);
+
 void typeCmd(char** arg, char** exePath);
 void echoCmd(char** msg);
 void printWorkingDirectory();
@@ -155,6 +163,10 @@ char** autocomplete(const char* text, int start, int end) {
                     rl_replace_line(prefix, 0);
                     rl_point = strlen(prefix);
                     free(prefix);
+                    for (char** m = matches; *m; ++m) {
+                        free(*m);
+                    }
+                    free(matches);
                     return NULL;
                 }
                 free(prefix);
@@ -256,7 +268,10 @@ int handleInputs(const char* input) {
         free(inputDup);
         free(argv);
         return 0;
-    
+    } else if (!handlePipelines(argv)) {
+        free(inputDup);
+        free(argv);
+        return 0;
     } else if (!strncmp(argv[0], "exit", 4)) {
         if (argv[1] && !strncmp(argv[1], "0", 1)) {
             free(inputDup);
@@ -410,7 +425,7 @@ char** tokenize(char* line) {
     return argv;
 }
 /// @brief
-///        * THE CHAR(S) ">" MUST BE THEIR OWN TOKEN (SEPERATED BY SPACES) TO BE PARSED CORRECTLY
+/// THE CHAR(S) ">" MUST BE THEIR OWN TOKEN (SEPERATED BY SPACES) TO BE PARSED CORRECTLY
 /// @param argv 
 /// @return 
 int handleOutputRedir(char** argv) {
@@ -448,7 +463,7 @@ int handleOutputRedir(char** argv) {
         outputIdx = i;
         fname = argv[i + 1];
        
-        if (fflush(NULL)) { //* flush buffer before changing which fd stdx refers to, that way we dont get any undefined behaviour (was a pain to debug!)
+        if (fflush(NULL)) { // * flush buffer before changing which fd stdx refers to, that way we dont get any undefined behaviour (was a pain to debug!)
             perror("fflush before dup2");
             exit(1);
         }
@@ -457,7 +472,7 @@ int handleOutputRedir(char** argv) {
             perror("open file");
             exit(1);
         }
-        savedstream = dup(stream); // REMEMBER TO SAVE ORIGINAL STDx FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDx INSTEAD OF THE FILE
+        savedstream = dup(stream); // * REMEMBER TO SAVE ORIGINAL STDx FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDx INSTEAD OF THE FILE
         result = dup2(fd, stream); // stdx_fileno now refers to fd
         if (result == -1) {
             perror("dup2 fd");
@@ -486,6 +501,105 @@ int handleOutputRedir(char** argv) {
         perror("stdout");
         exit(1);
     }
+    return 0;
+}
+/// @brief 
+/// @param argv 
+/// @return 
+int* _getPipelineIndices(char** argv) {
+    int* pipe_idx_arr = NULL;
+    // count indices to malloc array
+    int pipeCntr = 0;
+    for (int i = 0; argv[i]; ++i) {
+        if (!strcmp(argv[i], "|")) ++pipeCntr;
+    }
+    if (pipeCntr == 0) return NULL;
+    pipe_idx_arr = malloc((pipeCntr + 1) * sizeof(int)); // use '-1' sentinel
+    // store pipeline indices to be split on
+    int curr_idx = 0;
+    for (int i = 0; argv[i]; ++i) {
+        if (!strcmp(argv[i], "|")) {
+            pipe_idx_arr[curr_idx++] = i;
+        }
+    }
+    pipe_idx_arr[curr_idx] = -1;
+    return pipe_idx_arr;
+}
+
+int _spawnProcess(int input_fd, int output_fd, char** command) {
+    if (!fork()) { // child
+        if (input_fd == STDOUT_FILENO) {
+            dup2(input_fd, STDIN_FILENO);
+            close(input_fd);
+        }
+        if (output_fd == STDIN_FILENO) {
+            dup2(output_fd, STDOUT_FILENO);
+            close(output_fd);
+        }
+        
+        return execvp(command[0], command); // decision made not to use my findExecutableFile function here
+        perror("execvp"); 
+        exit(1);
+    }
+    return 0;
+}
+
+int forkPipes(char** argv, int* pipe_idx_arr, int n) {
+    int fd[2]; // [0] for read, [1] for write
+    int inputfd = 0;
+    int size = 0;
+    char** argv1 = NULL;
+
+    for (int i = 0; i < n - 1; ++i) {
+        if (pipe(fd)) {
+            perror("pipe");
+            exit(1);
+        }
+        if (i == 0) {
+            size = pipe_idx_arr[i];
+        } else {
+            size = pipe_idx_arr[i] - pipe_idx_arr[i - 1] - 1;
+        }
+        argv1 = malloc(sizeof(char*) * (size + 1));
+        argv1[size] = NULL;
+        memcpy(argv1, argv + pipe_idx_arr[i], size);
+        _spawnProcess(inputfd, fd[1], argv1);
+        close(fd[1]); // parent can only be here at this point
+        inputfd = fd[0];
+    }
+    // handle last pipeline
+    if (inputfd == STDOUT_FILENO) {
+        dup2(inputfd, STDIN_FILENO);
+    }
+
+    return execvp(argv[pipe_idx_arr[n - 1] + 1], argv + pipe_idx_arr[n-1] + 1);
+}
+
+/// @brief 
+/// @param argv 
+/// @return 
+int handlePipelines(char** argv) {
+
+    int* pipe_idx_arr = _getPipelineIndices(argv);
+    if (pipe_idx_arr == NULL) {
+        free(pipe_idx_arr);
+        return 1;
+    }
+    int n = (ARRAY_LEN(pipe_idx_arr)) - 1; // -1 for sentinel node at end
+
+    pid_t root = fork();
+    int status = 0;
+
+    if (root == 0) { 
+        forkPipes(argv, pipe_idx_arr, n);
+        perror("pipe");
+        exit(1);
+    }
+    do {
+        waitpid(root, &status, WUNTRACED); // reap childprocess, WUNTRACED for better reporting on process state
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status)); // wait while the child did NOT end normally AND did NOT end by a signal
+    
+    free(pipe_idx_arr);
     return 0;
 }
 
@@ -565,9 +679,10 @@ int findExecutableFile(const char *filename, char **exePath) {
     if (exeFound) return 1;
     return 0;
 }
+
 /// @brief creates child process that executes command
 /// @param argv list of tokens
-/// @param fullpath path of exe, decision was made to use this in conjunction with exec instead of exexcvp
+/// @param fullpath path of exe, decision was made to use this in conjunction with exec instead of execvp because i implemented my own function to search in PATH
 void runExecutableFile(char** argv, char* fullpath) {
     pid_t pid = fork(); // gotta fork otherwise if we run execv on the current process, its process image gets replaced and we can never return back to the current program
     int status = 0;
@@ -591,8 +706,8 @@ void printWorkingDirectory() {
     if ((buf = malloc((size_t)size)) != NULL) {
         pwd = getcwd(buf, size);
         printf("\r%s\n", pwd);
+        free(buf);
     }
-    free(buf);
 }
 
 void changeDir(char** argv) {
