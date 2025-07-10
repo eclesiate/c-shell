@@ -23,7 +23,7 @@ char** tokenize(char* line);
 int handleOutputRedir(char** argv);
 
 int _spawnProcess(int input_fd, int output_fd, char** command);
-int* _getPipelineIndices(char** argv);
+int* _getPipelineIndices(char** argv, int* pipeCnt);
 int forkPipes(char** argv, int* pipe_idx_arr, int n);
 int handlePipelines(char** argv);
 
@@ -35,30 +35,37 @@ void echoCmd(char** msg);
 void printWorkingDirectory();
 void changeDir(char** argv);
 
-void initializeReadline(void);
+static void initializeReadline(void);
 static int tabHandler(int count, int key);
 char** autocomplete(const char* text, int start, int end);
 char* findLongestCommonPrefix(char** arrOfStrings, const char* text);
-void displayMatches(char **matches, int num_matches, int max_length);
 char* builtinGenerator(const char* text, int state);
-void populatePrefixTree(Trie *root);
+char* filePathGenerator(const char* text, int state);
+void populateBuiltinTree(Trie *root);
 void populateExeTree(Trie* root);
+void populateFilePathTree(Trie* root, const char* directory);
+void displayMatches(char **matches, int num_matches, int max_length);
 
 Trie* builtin_tree_root = NULL;
 Trie* exe_tree_root = NULL;
+Trie* filepath_tree_root = NULL;
+
+static bool did_autocomplete = false;
 
 int main(int argc, char* argv[]) {
 
     char* line = NULL;
     initializeReadline();
 
-    builtin_tree_root = trieCreate(); 
-    populatePrefixTree(builtin_tree_root);
+    builtin_tree_root = trieCreate(); // exit, echo
+    populateBuiltinTree(builtin_tree_root);
 
     exe_tree_root = trieCreate();
     populateExeTree(exe_tree_root);
     
     while (1) {
+        filepath_tree_root = trieCreate();
+
         line = readline("$ ");
 
         if (line == NULL) break;
@@ -69,13 +76,14 @@ int main(int argc, char* argv[]) {
         }
 
         free(line);
+        trieFree(filepath_tree_root);
     }
     trieFree(builtin_tree_root);
     trieFree(exe_tree_root);
     return 0;
 }
 
-void initializeReadline(void) {
+static void initializeReadline(void) {
     rl_attempted_completion_function = autocomplete;
     rl_completion_display_matches_hook = displayMatches;
     rl_bind_key('\t', tabHandler);
@@ -83,17 +91,20 @@ void initializeReadline(void) {
 
 static int tabHandler(int count, int key) {
     static bool tabbed = false;
-    // upon second consecutive TAB, call possible_completions which hooks to our custom displayMatches() function.
+    did_autocomplete = false;
+    // upon second consecutive TAB, call hook to our custom displayMatches() function.
     if (tabbed) {
         rl_possible_completions(count, key);
         tabbed = false;
     } else {
-        if (rl_complete(count, key) == 0) { // print terminal bell or search for longest common prefix
+        rl_complete(count, key);
+        if (!did_autocomplete) { // print terminal bell when multiple matches or no 
             printf("\x07");
             fflush(stdout);
             tabbed = true;
         }
     }
+
     rl_redisplay();
     return 0;
 }
@@ -108,12 +119,34 @@ void displayMatches(char **matches, int num_matches, int max_length) {
     rl_redisplay();
 }
 
-// char acBuiltinBuf[AC_BUF_CAP];
-// size_t acBuiltinBufSz = 0;
-
-void populatePrefixTree(Trie *root) {
+/// @brief test function for just the echo and exit builtins
+/// @param root 
+void populateBuiltinTree(Trie *root) {
     trieInsert(root, "echo");
     trieInsert(root, "exit");
+}
+
+/// @brief 
+/// @param root 
+/// @param directory 
+void populateFilePathTree(Trie* root, const char* directory) {
+    struct dirent** exeList = NULL;
+    int numExe = scandir(directory, &exeList, NULL, alphasort);
+    if (numExe <= 0) {
+        return;
+    }
+    for (int i = 0; i < numExe; ++i) {
+        char* filepath = malloc(strlen(directory) + strlen(exeList[i]->d_name) + 1);
+        memcpy(filepath, directory, strlen(directory) + 1);
+        strcat(filepath, exeList[i]->d_name);
+        trieInsert(root, filepath);
+        free(filepath);
+    }
+
+    for (int i = 0; i < numExe; ++i) {
+        free(exeList[i]);
+    }
+    free(exeList);
 }
 
 /// @brief add every executable file in PATH to the prefix tree
@@ -152,14 +185,14 @@ void populateExeTree(Trie *root) {
 char** autocomplete(const char* text, int start, int end) {
     char** matches = NULL;
     rl_attempted_completion_over = 1;
-    if (start == 0) {
-        //if (trieSearch(builtin))
+    if (start == 0) { // text to autocomplete is the first word so it is an exe
         matches = rl_completion_matches(text, builtinGenerator);
         if (matches) {
             char* prefix = findLongestCommonPrefix(matches, text);
             if (prefix) {
                 // edge case where found prefix is somehow the exact original text
                 if (strcmp(prefix, text)) {
+                    did_autocomplete = true;
                     rl_replace_line(prefix, 0);
                     rl_point = strlen(prefix);
                     free(prefix);
@@ -172,6 +205,38 @@ char** autocomplete(const char* text, int start, int end) {
                 free(prefix);
             }
         }
+    } else { 
+         // autocomplete file 
+         // TODO. add support for autocompletion when pressing tab after an incomplete filepath with no '/' after the 'cd' command
+        char* last_slash_addr = strrchr(text, '/');
+        if (last_slash_addr != NULL) {
+            size_t num_bytes = (size_t) (last_slash_addr - text);
+            char* curr_file_path = malloc(num_bytes + 2);
+            memcpy(curr_file_path, text, num_bytes + 1);
+            curr_file_path[num_bytes + 1] = '\0';
+            populateFilePathTree(filepath_tree_root, curr_file_path);
+            free(curr_file_path);
+            matches = rl_completion_matches(text, filePathGenerator);
+            if (matches) {
+                char* prefix = findLongestCommonPrefix(matches, text);
+                if (prefix) {
+                    // if statement to prevent edge case where lcp is the current text
+                    if (strcmp(prefix, text)) {
+                        did_autocomplete = true;
+                        rl_delete_text(start, end);
+                        rl_point = start;
+                        rl_insert_text(prefix);
+                        free(prefix);
+                        for (char** m = matches; *m; ++m) {
+                            free(*m);
+                        }
+                        free(matches);
+                        return NULL;
+                    }
+                    free(prefix);
+                }
+            }
+        }
     }
     return matches;
 }
@@ -182,9 +247,7 @@ char** autocomplete(const char* text, int start, int end) {
 /// @return mallocd string for longest common prefix (lcp), MUST BE FREE'D BY CALLER 
 char* findLongestCommonPrefix(char** arrOfStrings, const char* text) {
     char** firstMatch = arrOfStrings;
-    for (char** match = arrOfStrings; *match; ++match) {
-        // fprintf(stdout, "%s\n", *match);
-    }
+
     char* lcp = *firstMatch;
     int idx = strlen(text) - 1; // current index of lcp
 
@@ -237,6 +300,32 @@ char* builtinGenerator(const char* text, int state) {
             } else {
                 arrayOfMatches = NULL; // * NO COMPLETIONS POSSIBLE, RETURN NULL TO THEN RING BELL IN TABHANDLER(), took a really long time to debug this... 
             }
+        }
+    }
+
+    if (!arrayOfMatches || !arrayOfMatches[list_idx]) {
+        return NULL;
+    }
+    return arrayOfMatches[list_idx++];
+}
+
+char* filePathGenerator(const char* text, int state) {
+    static char** arrayOfMatches = NULL;
+    static int list_idx = 0;
+
+    if (state == 0) {
+        if ((arrayOfMatches)) {
+            // free unreturned matches, readline frees returned ones
+            for (int k = list_idx; arrayOfMatches[k] != NULL; ++k) {
+                free(arrayOfMatches[k]);
+            }
+            free(arrayOfMatches);
+        }
+        list_idx = 0;
+        TrieType filepath = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
+        Trie* subtree = getPrefixSubtree(filepath_tree_root, (char*)text, &filepath);
+        if (subtree) {
+            arrayOfMatches = assembleTree(subtree, &filepath);    
         }
     }
 
@@ -506,7 +595,7 @@ int handleOutputRedir(char** argv) {
 /// @brief 
 /// @param argv 
 /// @return 
-int* _getPipelineIndices(char** argv) {
+int* _getPipelineIndices(char** argv, int* pipeCnt) {
     int* pipe_idx_arr = NULL;
     // count indices to malloc array
     int pipeCntr = 0;
@@ -522,7 +611,8 @@ int* _getPipelineIndices(char** argv) {
             pipe_idx_arr[curr_idx++] = i;
         }
     }
-    pipe_idx_arr[curr_idx] = -1;
+    pipe_idx_arr[curr_idx] = -1; // TODO. maybe remove this sentinel logic
+    *pipeCnt = curr_idx;
     return pipe_idx_arr;
 }
 
@@ -579,19 +669,17 @@ int forkPipes(char** argv, int* pipe_idx_arr, int n) {
 /// @param argv 
 /// @return 
 int handlePipelines(char** argv) {
-
-    int* pipe_idx_arr = _getPipelineIndices(argv);
+    int pipeCnt = 0;
+    int* pipe_idx_arr = _getPipelineIndices(argv, &pipeCnt); // ! notice that we can't use my ARRAY_LEN macro on this pointer since sizeof() only works on arrays whose length are known at compile time
     if (pipe_idx_arr == NULL) {
         free(pipe_idx_arr);
         return 1;
     }
-    int n = (ARRAY_LEN(pipe_idx_arr)) - 1; // -1 for sentinel node at end
-
     pid_t root = fork();
     int status = 0;
 
     if (root == 0) { 
-        forkPipes(argv, pipe_idx_arr, n);
+        forkPipes(argv, pipe_idx_arr, pipeCnt);
         perror("pipe");
         exit(1);
     }
