@@ -1,3 +1,16 @@
+/*
+Author: David Xu
+2025-07-11
+
+POSIX compliant shell that features custom autocompletion using prefix trees for executables, builtin's, and filepaths. 
+Using GNU readline hooks to intercept TAB presses and to facilitate buffer stuff. 
+Allows pipelined commands, command history, and output redirection.
+
+Fixes/Improvements:
+- //TODO. change printf's to gnu readline buffer variables instead.
+- //TODO. export command does not add new PATH to executable trie
+*/
+
 #define _DEFAULT_SOURCE
 
 #include <stdio.h>
@@ -10,12 +23,13 @@
 #include <dirent.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include "prefixTree.h"
+#include "autocomplete.h"
 
-static const char* allowableCmds[] = {"type", "echo", "exit", "pwd", NULL};
+static const char* allowable_cmds[] = {"type", "echo", "exit", "pwd", NULL};
 
 int handleInputs(const char* input);
 char** tokenize(char* line);
@@ -23,49 +37,25 @@ char** tokenize(char* line);
 int handleOutputRedir(char** argv);
 
 int _spawnProcess(int input_fd, int output_fd, char** command);
-int* _getPipelineIndices(char** argv, int* pipeCnt);
+int* _getPipelineIndices(char** argv, int* pipe_cnt);
 int forkPipes(char** argv, int* pipe_idx_arr, int n);
 int handlePipelines(char** argv);
 
-int findExecutableFile(const char* filename, char** exepath);
+int findExecutableFile(const char* filename, char** exe_path);
 void runExecutableFile(char** argv, char* fullpath);
 
-void typeCmd(char** arg, char** exePath);
+void typeCmd(char** arg, char** exe_path);
 void echoCmd(char** msg);
 void printWorkingDirectory();
 void changeDir(char** argv);
-
-static void initializeReadline(void);
-static int tabHandler(int count, int key);
-char** autocomplete(const char* text, int start, int end);
-char* findLongestCommonPrefix(char** arrOfStrings, const char* text);
-char* builtinGenerator(const char* text, int state);
-char* filePathGenerator(const char* text, int state);
-void populateBuiltinTree(Trie *root);
-void populateExeTree(Trie* root);
-void populateFilePathTree(Trie* root, const char* directory);
-void displayMatches(char **matches, int num_matches, int max_length);
-
-Trie* builtin_tree_root = NULL;
-Trie* exe_tree_root = NULL;
-Trie* filepath_tree_root = NULL;
-
-static bool did_autocomplete = false;
 
 int main(int argc, char* argv[]) {
 
     char* line = NULL;
     initializeReadline();
+    initializeAutocomplete();
 
-    builtin_tree_root = trieCreate(); // exit, echo
-    populateBuiltinTree(builtin_tree_root);
-
-    exe_tree_root = trieCreate();
-    populateExeTree(exe_tree_root);
-    
     while (1) {
-        filepath_tree_root = trieCreate();
-
         line = readline("$ ");
 
         if (line == NULL) break;
@@ -76,265 +66,10 @@ int main(int argc, char* argv[]) {
         }
 
         free(line);
-        trieFree(filepath_tree_root);
     }
-    trieFree(builtin_tree_root);
-    trieFree(exe_tree_root);
+    cleanupAutocomplete();
     return 0;
 }
-
-static void initializeReadline(void) {
-    rl_attempted_completion_function = autocomplete;
-    rl_completion_display_matches_hook = displayMatches;
-    rl_bind_key('\t', tabHandler);
-}
-
-static int tabHandler(int count, int key) {
-    static bool tabbed = false;
-    did_autocomplete = false;
-    // upon second consecutive TAB, call hook to our custom displayMatches() function.
-    if (tabbed) {
-        rl_possible_completions(count, key);
-        tabbed = false;
-    } else {
-        rl_complete(count, key);
-        if (!did_autocomplete) { // print terminal bell when multiple matches or no 
-            printf("\x07");
-            fflush(stdout);
-            tabbed = true;
-        }
-    }
-
-    rl_redisplay();
-    return 0;
-}
-
-void displayMatches(char **matches, int num_matches, int max_length) {
-    printf("\n");
-    for (int i = 1; i <= num_matches; ++i) {
-        printf("%s  ", matches[i]);
-    }
-    printf("\n");
-    rl_on_new_line();
-    rl_redisplay();
-}
-
-/// @brief test function for just the echo and exit builtins
-/// @param root 
-void populateBuiltinTree(Trie *root) {
-    trieInsert(root, "echo");
-    trieInsert(root, "exit");
-}
-
-/// @brief 
-/// @param root 
-/// @param directory 
-void populateFilePathTree(Trie* root, const char* directory) {
-    struct dirent** exeList = NULL;
-    int numExe = scandir(directory, &exeList, NULL, alphasort);
-    if (numExe <= 0) {
-        return;
-    }
-    for (int i = 0; i < numExe; ++i) {
-        char* filepath = malloc(strlen(directory) + strlen(exeList[i]->d_name) + 1);
-        memcpy(filepath, directory, strlen(directory) + 1);
-        strcat(filepath, exeList[i]->d_name);
-        trieInsert(root, filepath);
-        free(filepath);
-    }
-
-    for (int i = 0; i < numExe; ++i) {
-        free(exeList[i]);
-    }
-    free(exeList);
-}
-
-/// @brief add every executable file in PATH to the prefix tree
-/// @param root root of executable file tree
-/// @return void
-void populateExeTree(Trie *root) {
-   // search for executable programs in PATH
-    const char* path = getenv("PATH");
-    // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
-    char* pathCopy = strdup(path);
-    char* scan = pathCopy;
-    char* currPath = strtok(scan, ":");
-
-    while (currPath) { // this code assumes that only directories are in PATH, maybe call stat and S_ISDIR() to verify 
-        struct dirent** exeList = NULL; // *MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
-        int numExe = scandir(currPath, &exeList, NULL, alphasort);
-        if (numExe <= 0) { // error or 0 entries in array
-            currPath = strtok(NULL, ":");
-            if (exeList) free(exeList);
-            continue;
-        }
-        for (int i = 0; i < numExe; ++i) {
-            trieInsert(root, exeList[i]->d_name);
-        }
-
-        for (int i = 0; i < numExe; ++i) {
-            free(exeList[i]);
-        }
-        free(exeList);
-
-        currPath = strtok(NULL, ":");
-    }
-    free(pathCopy);
-}
-
-char** autocomplete(const char* text, int start, int end) {
-    char** matches = NULL;
-    rl_attempted_completion_over = 1;
-    if (start == 0) { // text to autocomplete is the first word so it is an exe
-        matches = rl_completion_matches(text, builtinGenerator);
-        if (matches) {
-            char* prefix = findLongestCommonPrefix(matches, text);
-            if (prefix) {
-                // edge case where found prefix is somehow the exact original text
-                if (strcmp(prefix, text)) {
-                    did_autocomplete = true;
-                    rl_replace_line(prefix, 0);
-                    rl_point = strlen(prefix);
-                    free(prefix);
-                    for (char** m = matches; *m; ++m) {
-                        free(*m);
-                    }
-                    free(matches);
-                    return NULL;
-                }
-                free(prefix);
-            }
-        }
-    } else { 
-         // autocomplete file 
-         // TODO. add support for autocompletion when pressing tab after an incomplete filepath with no '/' after the 'cd' command
-        char* last_slash_addr = strrchr(text, '/');
-        if (last_slash_addr != NULL) {
-            size_t num_bytes = (size_t) (last_slash_addr - text);
-            char* curr_file_path = malloc(num_bytes + 2);
-            memcpy(curr_file_path, text, num_bytes + 1);
-            curr_file_path[num_bytes + 1] = '\0';
-            populateFilePathTree(filepath_tree_root, curr_file_path);
-            free(curr_file_path);
-            matches = rl_completion_matches(text, filePathGenerator);
-            if (matches) {
-                char* prefix = findLongestCommonPrefix(matches, text);
-                if (prefix) {
-                    // if statement to prevent edge case where lcp is the current text
-                    if (strcmp(prefix, text)) {
-                        did_autocomplete = true;
-                        rl_delete_text(start, end);
-                        rl_point = start;
-                        rl_insert_text(prefix);
-                        free(prefix);
-                        for (char** m = matches; *m; ++m) {
-                            free(*m);
-                        }
-                        free(matches);
-                        return NULL;
-                    }
-                    free(prefix);
-                }
-            }
-        }
-    }
-    return matches;
-}
-
-/// @brief 
-/// @param arrOfStrings 
-/// @param text 
-/// @return mallocd string for longest common prefix (lcp), MUST BE FREE'D BY CALLER 
-char* findLongestCommonPrefix(char** arrOfStrings, const char* text) {
-    char** firstMatch = arrOfStrings;
-
-    char* lcp = *firstMatch;
-    int idx = strlen(text) - 1; // current index of lcp
-
-    if (*(firstMatch + 1) == NULL) return NULL; // only one match
-    
-    while (lcp[idx] != '\0') {
-        char** iterator = firstMatch + 1;
-        if ((*firstMatch)[idx] == '\0') return strndup(lcp, idx);
-        // printf("Idx: %d\tIterator: %s\n", idx, iterator);
-        while(*iterator != NULL) {
-            // printf("\tIterator: %s\n", iterator);
-            if ((*iterator)[idx] == '\0') return strndup(lcp, idx);
-            if ((*iterator)[idx] != (*firstMatch)[idx]) return strndup(lcp, idx);
-            ++iterator;
-        }
-        ++idx;
-    }
-
-    return strndup(lcp, idx); // strndup adds the null terminator if not in duplicated bytes
-}
-
-
-/// @brief 
-/// @param text 
-/// @param state 
-/// @return 
-char* builtinGenerator(const char* text, int state) {
-    static char** arrayOfMatches = NULL;
-    static int list_idx = 0;
-
-    if (state == 0) {
-        if ((arrayOfMatches)) {
-            // free unreturned matches
-            for (int k = list_idx; arrayOfMatches[k] != NULL; ++k) {
-                free(arrayOfMatches[k]);
-            }
-            free(arrayOfMatches);
-        }
-        list_idx = 0;
-        TrieType builtin = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
-        Trie* subtree = getPrefixSubtree(builtin_tree_root, (char*)text, &builtin);
-        if (subtree) {
-            arrayOfMatches = assembleTree(subtree, &builtin);
-        // if not found in builtin_tree, then search exe_tree
-        } else {
-            TrieType exe = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
-            Trie* exeSubtree = getPrefixSubtree(exe_tree_root, (char*) text, &exe);
-            if (exeSubtree) {
-                arrayOfMatches = assembleTree(exeSubtree, &exe);
-            } else {
-                arrayOfMatches = NULL; // * NO COMPLETIONS POSSIBLE, RETURN NULL TO THEN RING BELL IN TABHANDLER(), took a really long time to debug this... 
-            }
-        }
-    }
-
-    if (!arrayOfMatches || !arrayOfMatches[list_idx]) {
-        return NULL;
-    }
-    return arrayOfMatches[list_idx++];
-}
-
-char* filePathGenerator(const char* text, int state) {
-    static char** arrayOfMatches = NULL;
-    static int list_idx = 0;
-
-    if (state == 0) {
-        if ((arrayOfMatches)) {
-            // free unreturned matches, readline frees returned ones
-            for (int k = list_idx; arrayOfMatches[k] != NULL; ++k) {
-                free(arrayOfMatches[k]);
-            }
-            free(arrayOfMatches);
-        }
-        list_idx = 0;
-        TrieType filepath = {.autocompleteBuf = {0}, .autocompleteBufSz = 0};
-        Trie* subtree = getPrefixSubtree(filepath_tree_root, (char*)text, &filepath);
-        if (subtree) {
-            arrayOfMatches = assembleTree(subtree, &filepath);    
-        }
-    }
-
-    if (!arrayOfMatches || !arrayOfMatches[list_idx]) {
-        return NULL;
-    }
-    return arrayOfMatches[list_idx++];
-}
-
 
 /// @brief tokenizes string for handling, then parses each argument and executes commands
 /// @param input user input 
@@ -342,8 +77,8 @@ char* filePathGenerator(const char* text, int state) {
 int handleInputs(const char* input) {
     char* inputDup = (char*) strdup(input); // since strtok is destructive 
     char* ptr = inputDup;
-    // since I dont know the size of exePath, declare as NULL and pass it's address into findExecutableFile()
-    char* exePath = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
+    // since I dont know the size of exe_path, declare as NULL and pass it's address into findExecutableFile()
+    char* exe_path = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
 
     char** argv = tokenize(ptr);
 
@@ -379,15 +114,15 @@ int handleInputs(const char* input) {
         changeDir(argv);
 
     } else if (!strncmp(argv[0], "type", 4)) {
-        typeCmd(argv, &exePath);
+        typeCmd(argv, &exe_path);
 
-    } else if (findExecutableFile(argv[0], &exePath)) {
-        runExecutableFile(argv, exePath);
+    } else if (findExecutableFile(argv[0], &exe_path)) {
+        runExecutableFile(argv, exe_path);
 
     } else {
         printf("%s: not found\n", argv[0]);
     }
-    if(exePath) free(exePath);
+    if(exe_path) free(exe_path);
     free(argv);
     free(inputDup);
     return 0;
@@ -407,7 +142,7 @@ char** tokenize(char* line) {
     size_t argc = 0;
     char* token = NULL;
 
-    bool doneToken = true;
+    bool token_done = true;
     
     // strip leading whitespaces
     while(*line == ' ') { ++line; }
@@ -430,19 +165,19 @@ char** tokenize(char* line) {
             if (*ptr == '"') {
                     state = IN_DOUBLE;
                     // does not include the quote char
-                    if (doneToken) { token = ++ptr; }
+                    if (token_done) { token = ++ptr; }
             } else if (*ptr == '\'') {
                     state = IN_SINGLE;
-                    if (doneToken) { token = ++ptr; }
+                    if (token_done) { token = ++ptr; }
             } else {
                 state = OUTSIDE; 
             }
             // first realloc call with NULL is treated as malloc, doing +2 to account for final NULL entry
             // * note the use of sizeof(char*) since argv is an array of strings!
-            if (doneToken) {
+            if (token_done) {
                 argv = realloc(argv, sizeof(char*) * (argc + 2));
                 argv[argc++] = token;
-                doneToken = false;
+                token_done = false;
             }
         }
         // processing current token
@@ -455,7 +190,7 @@ char** tokenize(char* line) {
                         // only start a new token if the char after ' is a SPACE
                         if (*(ptr + 1) == ' ') {
                             *(ptr++) = '\0'; // end current token by replacing '
-                            doneToken = true;
+                            token_done = true;
                         } else {
                             memmove(ptr, ptr + 1, strlen(ptr + 1) + 1);
                         }
@@ -474,7 +209,7 @@ char** tokenize(char* line) {
                         // only start a new token if the char after " is a SPACE
                         if (ptr[1] == ' ') {
                             *(ptr++) = '\0'; // end current token on "
-                            doneToken = true;
+                            token_done = true;
                         } else {
                             memmove(ptr, ptr + 1, strlen(ptr + 1) + 1);
                         }
@@ -492,7 +227,7 @@ char** tokenize(char* line) {
                         memmove(ptr, ptr + 1, strlen(ptr + 1) + 1);
                     // unescaped space signals start of new token
                     } else if (*ptr == ' ') {
-                        doneToken = true;
+                        token_done = true;
                         break;
                     // current token will switch state
                     } else if (*ptr == '\'' || *ptr == '"') {
@@ -501,7 +236,7 @@ char** tokenize(char* line) {
                     ++ptr;
                 }
                 // since we didnt move pointer after breaking on a space, space gets overwritten
-                if (doneToken && *ptr != '\0') { *(ptr++) = '\0'; }
+                if (token_done && *ptr != '\0') { *(ptr++) = '\0'; }
                 state = OUTSIDE;
         }
     }
@@ -518,50 +253,50 @@ char** tokenize(char* line) {
 /// @param argv 
 /// @return 
 int handleOutputRedir(char** argv) {
-    bool outReder = false;
-    bool errReder = false;
-    int appendOut = 0;
-    int appendErr = 0;
+    bool out_reder = false;
+    bool err_reder = false;
+    int append_out = 0;
+    int append_err = 0;
     int trunc = 0;
-    int savedstream = -1;
+    int saved_stream = -1;
     int stream = -1;
     int fd = 0;
     int result = -1;
-    int outputIdx = -1;
+    int output_idx = -1;
     char* fname = NULL;
 
     for (int i = 0; argv[i]; ++i) {
-        outReder = !strcmp(argv[i], ">") || !strcmp(argv[i], "1>");
-        errReder = !strcmp(argv[i], "2>");
+        out_reder = !strcmp(argv[i], ">") || !strcmp(argv[i], "1>");
+        err_reder = !strcmp(argv[i], "2>");
         if (!strcmp(argv[i], "1>>") || !strcmp(argv[i], ">>")) {
-            appendOut = O_APPEND;
+            append_out = O_APPEND;
         } else if (!strcmp(argv[i], "2>>") || !strcmp(argv[i], ">>")) {
-            appendErr = O_APPEND;
+            append_err = O_APPEND;
         }
         // set open() flags and stream depending on command
-        if (outReder || appendOut) {
+        if (out_reder || append_out) {
             stream = STDOUT_FILENO;
-            trunc = appendOut ? 0 : O_TRUNC; // trunc and append are mutually exclusive
-        } else if (errReder || appendErr) {
+            trunc = append_out ? 0 : O_TRUNC; // trunc and append are mutually exclusive
+        } else if (err_reder || append_err) {
             stream = STDERR_FILENO;
-            trunc = appendErr ? 0 : O_TRUNC;
+            trunc = append_err ? 0 : O_TRUNC;
         } else {
             continue;
         }
 
-        outputIdx = i;
+        output_idx = i;
         fname = argv[i + 1];
        
         if (fflush(NULL)) { // * flush buffer before changing which fd stdx refers to, that way we dont get any undefined behaviour (was a pain to debug!)
             perror("fflush before dup2");
             exit(1);
         }
-        fd = open(fname, O_CREAT | trunc | O_RDWR | appendOut | appendErr, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
+        fd = open(fname, O_CREAT | trunc | O_RDWR | append_out | append_err, S_IRWXU); // create file if DNE, or fully truncate it if it does, set mode of created file to read, write, ex permissions
         if (fd == -1) {
             perror("open file");
             exit(1);
         }
-        savedstream = dup(stream); // * REMEMBER TO SAVE ORIGINAL STDx FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDx INSTEAD OF THE FILE
+        saved_stream = dup(stream); // * REMEMBER TO SAVE ORIGINAL STDx FD (1) SO THAT AFTER THE FUNCTION FINISHES WE CAN PRINT TO STDx INSTEAD OF THE FILE
         result = dup2(fd, stream); // stdx_fileno now refers to fd
         if (result == -1) {
             perror("dup2 fd");
@@ -571,39 +306,40 @@ int handleOutputRedir(char** argv) {
         break;
     }
 
-    if (outputIdx < 0) return 1;
+    if (output_idx < 0) return 1;
 
     // execute the command whose output gets redirected
-    char* exePath = NULL;
-    if (findExecutableFile(argv[0], &exePath)) {
-        argv[outputIdx] = NULL; // don't treat any tokens past here as arguments
-        runExecutableFile(argv, exePath);
-        free(exePath);
+    char* exe_path = NULL;
+    if (findExecutableFile(argv[0], &exe_path)) {
+        argv[output_idx] = NULL; // don't treat any tokens past here as arguments
+        runExecutableFile(argv, exe_path);
+        free(exe_path);
     } else {
         perror("failed to find executable");
     }
     // once executed, revert back to stdx!
-    if (savedstream >= 0) {
-        dup2(savedstream, stream);
-        close(savedstream); // always close duplicate fds
+    if (saved_stream >= 0) {
+        dup2(saved_stream, stream);
+        close(saved_stream); // always close duplicate fds
     } else {
         perror("stdout");
         exit(1);
     }
     return 0;
 }
+
 /// @brief 
 /// @param argv 
 /// @return 
-int* _getPipelineIndices(char** argv, int* pipeCnt) {
+int* _getPipelineIndices(char** argv, int* pipe_cnt) {
     int* pipe_idx_arr = NULL;
     // count indices to malloc array
-    int pipeCntr = 0;
+    int pipe_cntr = 0;
     for (int i = 0; argv[i]; ++i) {
-        if (!strcmp(argv[i], "|")) ++pipeCntr;
+        if (!strcmp(argv[i], "|")) ++pipe_cntr;
     }
-    if (pipeCntr == 0) return NULL;
-    pipe_idx_arr = malloc((pipeCntr + 1) * sizeof(int)); // use '-1' sentinel
+    if (pipe_cntr == 0) return NULL;
+    pipe_idx_arr = malloc((pipe_cntr + 1) * sizeof(int)); // use '-1' sentinel
     // store pipeline indices to be split on
     int curr_idx = 0;
     for (int i = 0; argv[i]; ++i) {
@@ -612,7 +348,7 @@ int* _getPipelineIndices(char** argv, int* pipeCnt) {
         }
     }
     pipe_idx_arr[curr_idx] = -1; // TODO. maybe remove this sentinel logic
-    *pipeCnt = curr_idx;
+    *pipe_cnt = curr_idx;
     return pipe_idx_arr;
 }
 
@@ -669,8 +405,8 @@ int forkPipes(char** argv, int* pipe_idx_arr, int n) {
 /// @param argv 
 /// @return 
 int handlePipelines(char** argv) {
-    int pipeCnt = 0;
-    int* pipe_idx_arr = _getPipelineIndices(argv, &pipeCnt); // ! notice that we can't use my ARRAY_LEN macro on this pointer since sizeof() only works on arrays whose length are known at compile time
+    int pipe_cnt = 0;
+    int* pipe_idx_arr = _getPipelineIndices(argv, &pipe_cnt); // ! notice that we can't use my ARRAY_LEN macro on this pointer since sizeof() only works on arrays whose length are known at compile time
     if (pipe_idx_arr == NULL) {
         free(pipe_idx_arr);
         return 1;
@@ -679,7 +415,7 @@ int handlePipelines(char** argv) {
     int status = 0;
 
     if (root == 0) { 
-        forkPipes(argv, pipe_idx_arr, pipeCnt);
+        forkPipes(argv, pipe_idx_arr, pipe_cnt);
         perror("pipe");
         exit(1);
     }
@@ -691,24 +427,24 @@ int handlePipelines(char** argv) {
     return 0;
 }
 
-void typeCmd(char** argv, char** exePath) {
+void typeCmd(char** argv, char** exe_path) {
     const char* type = argv[1];
-    bool isShellBuiltin = false;
+    bool shell_builtin = false;
     /*
         Chatgpt suggested this very cool way of looping through an array of strings in C.
         like how strings are null terminated, make the last element of the array NULL to act as a "sentinel" for the loop condition
     */
-    for (const char** cmd = allowableCmds; *cmd; ++cmd) {
+    for (const char** cmd = allowable_cmds; *cmd; ++cmd) {
         if (!strcmp(type, *cmd)) {
             printf("%s is a shell builtin\n", type);
-            isShellBuiltin = true;
+            shell_builtin = true;
             break;
         }
     }
     // if not recognized as builtin command then search for executable files in PATH
-    if (!isShellBuiltin) {
-        if (findExecutableFile(type, exePath)) {
-            printf("%s is %s\n", type, *exePath);
+    if (!shell_builtin) {
+        if (findExecutableFile(type, exe_path)) {
+            printf("%s is %s\n", type, *exe_path);
         } else {
             printf("%s: not found\n", type);
         }
@@ -725,46 +461,46 @@ void echoCmd(char** argv) {
 
 /// @brief my own version of the access() function that attempts to find a file name in PATH
 /// @param filename executable file to find in PATH
-/// @param exePath buffer that gets malloc'd with full file path
+/// @param exe_path buffer that gets malloc'd with full file path
 /// @return 1 for success, 0 for failure
-int findExecutableFile(const char *filename, char **exePath) {
+int findExecutableFile(const char *filename, char **exe_path) {
     // search for executable programs in PATH
     const char* path = getenv("PATH");
     // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
-    char* pathCopy = strdup(path);
-    char* scan = pathCopy;
-    char* currPath = strtok(scan, ":");
-    bool exeFound = false;
+    char* path_copy = strdup(path);
+    char* scan = path_copy;
+    char* curr_path = strtok(scan, ":");
+    bool exe_found = false;
     // search through the list of all executable files in each PATH directory
-    while (currPath) {
-        struct dirent** exeList = NULL; // *MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
-        int numExe = scandir(currPath, &exeList, NULL, alphasort);
-        if (numExe <= 0) { // error or 0 entries in array
-            currPath = strtok(NULL, ":");
-            if (exeList) free(exeList);
+    while (curr_path) {
+        struct dirent** exe_list = NULL; // *MUST DECLARE AS NULL OTHERWISE ON EDGE CASE THAT FIRST DIRECTRORY SEARCHED GIVES ERR OR 0 ENTRIES, YOU ARE FREEING UNITIALIZED MEMORY!
+        int num_exe = scandir(curr_path, &exe_list, NULL, alphasort);
+        if (num_exe <= 0) { // error or 0 entries in array
+            curr_path = strtok(NULL, ":");
+            if (exe_list) free(exe_list);
             continue;
         }
-        for (int i = 0; i < numExe; ++i) {
-            if (!strcmp(exeList[i]->d_name, filename)) {
-                exeFound = true;
-                size_t buflen = strlen(currPath) + strlen(filename) + 2; // +1 for '/'
-                *exePath = malloc(buflen);
-                snprintf(*exePath, buflen, "%s/%s", currPath, filename);
+        for (int i = 0; i < num_exe; ++i) {
+            if (!strcmp(exe_list[i]->d_name, filename)) {
+                exe_found = true;
+                size_t buf_len = strlen(curr_path) + strlen(filename) + 2; // +1 for '/'
+                *exe_path = malloc(buf_len);
+                snprintf(*exe_path, buf_len, "%s/%s", curr_path, filename);
                 break;
             }
         }
 
-        for (int i = 0; i < numExe; ++i) {
-            free(exeList[i]);
+        for (int i = 0; i < num_exe; ++i) {
+            free(exe_list[i]);
         }
-        free(exeList);
+        free(exe_list);
 
-        if (exeFound) break;
-        currPath = strtok(NULL, ":");
+        if (exe_found) break;
+        curr_path = strtok(NULL, ":");
     }
-    free(pathCopy);
+    free(path_copy);
 
-    if (exeFound) return 1;
+    if (exe_found) return 1;
     return 0;
 }
 
@@ -799,16 +535,16 @@ void printWorkingDirectory() {
 }
 
 void changeDir(char** argv) {
-    char* targetPath = argv[1];
-    if (!targetPath) {
+    char* target_path = argv[1];
+    if (!target_path) {
         printf("No second token for cd\n");
         return;
     }
-    if (!strncmp(targetPath, "~", 1)) {
+    if (!strncmp(target_path, "~", 1)) {
         char* home = getenv("HOME");
-        targetPath = home;
+        target_path = home;
     }
-    if (chdir(targetPath)) {
-        printf("cd: %s: No such file or directory\n", targetPath);
+    if (chdir(target_path)) {
+        printf("cd: %s: No such file or directory\n", target_path);
     }
 }

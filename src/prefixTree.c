@@ -5,13 +5,13 @@ some of the function skeleton code taken from leetcode problem: https://leetcode
 #include "prefixTree.h"
 
 void acBufPush(char x, TrieType* type) {
-    assert((type->autocompleteBufSz < AC_BUF_CAP) && type);
-    type->autocompleteBuf[type->autocompleteBufSz++] = x;
+    assert((type->autocomplete_buf_sz < AC_BUF_CAP) && type);
+    type->autocomplete_buf[type->autocomplete_buf_sz++] = x;
 }
 
 void acBufPop(TrieType* type) {
-    assert((type->autocompleteBufSz > 0) && type);
-    --type->autocompleteBufSz;
+    assert((type->autocomplete_buf_sz > 0) && type);
+    --type->autocomplete_buf_sz;
 }
 
 
@@ -81,7 +81,7 @@ void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type) {
         *words = realloc(*words, (*cap) * sizeof(char*));
     }
     // * remember "*" has operator precendence, so you must inclose what you want dereferenced with brackets
-    (*words)[(*count)++] = strndup(type->autocompleteBuf, type->autocompleteBufSz); // *strndup adds null terminator
+    (*words)[(*count)++] = strndup(type->autocomplete_buf, type->autocomplete_buf_sz); // *strndup adds null terminator
 }
 
 void _assembleTreeHelper(Trie* root, char*** words, size_t* count, size_t* cap, TrieType* type) {
