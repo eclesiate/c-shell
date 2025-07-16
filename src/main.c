@@ -31,53 +31,53 @@ Fixes/Improvements:
 
 static const char* allowable_cmds[] = {"type", "echo", "exit", "pwd", NULL};
 
-int handleInputs(const char* input);
+int handle_inputs(const char* input);
 char** tokenize(char* line);
 
-int handleOutputRedir(char** argv);
+int handle_out_redir(char** argv);
 
-int _spawnProcess(int input_fd, int output_fd, char** command);
-int* _getPipelineIndices(char** argv, int* pipe_cnt);
-int forkPipes(char** argv, int* pipe_idx_arr, int n);
-int handlePipelines(char** argv);
+int _spawn_process(int input_fd, int output_fd, char** command);
+int* _get_pipeline_indices(char** argv, int* pipe_cnt);
+int fork_pipes(char** argv, int* pipe_idx_arr, int n);
+int handle_pipelines(char** argv);
 
-int findExecutableFile(const char* filename, char** exe_path);
-void runExecutableFile(char** argv, char* fullpath);
+int find_exe_files(const char* filename, char** exe_path);
+void run_exe_files(char** argv, char* fullpath);
 
-void typeCmd(char** arg, char** exe_path);
-void echoCmd(char** msg);
-void printWorkingDirectory();
-void changeDir(char** argv);
+void type_cmd(char** arg, char** exe_path);
+void echo_cmd(char** msg);
+void print_working_dir();
+void change_dir(char** argv);
 
 int main(int argc, char* argv[]) {
 
     char* line = NULL;
-    initializeReadline();
-    initializeAutocomplete();
+    init_readline();
+    init_ac();
 
     while (1) {
         line = readline("$ ");
 
         if (line == NULL) break;
         
-        if (handleInputs(line)) {
+        if (handle_inputs(line)) {
             free(line);
             break; // exit cmd
         }
 
         free(line);
     }
-    cleanupAutocomplete();
+    cleanup_ac();
     return 0;
 }
 
 /// @brief tokenizes string for handling, then parses each argument and executes commands
 /// @param input user input 
 /// @return 1 for break command to end program, 0 otherwise
-int handleInputs(const char* input) {
+int handle_inputs(const char* input) {
     char* inputDup = (char*) strdup(input); // since strtok is destructive 
     char* ptr = inputDup;
-    // since I dont know the size of exe_path, declare as NULL and pass it's address into findExecutableFile()
+    // since I dont know the size of exe_path, declare as NULL and pass it's address into find_exe_files()
     char* exe_path = NULL; // NOTE. for some reason, executing a file in PATH does not need the full path, so this is kinda useless
 
     char** argv = tokenize(ptr);
@@ -88,11 +88,11 @@ int handleInputs(const char* input) {
         return 0; 
     }
 
-    if (!handleOutputRedir(argv)) {
+    if (!handle_out_redir(argv)) {
         free(inputDup);
         free(argv);
         return 0;
-    } else if (!handlePipelines(argv)) {
+    } else if (!handle_pipelines(argv)) {
         free(inputDup);
         free(argv);
         return 0;
@@ -105,19 +105,19 @@ int handleInputs(const char* input) {
             printf("%s: not found\n", argv[0]);
         }
     } else if (!strncmp(argv[0], "echo", 4)) { 
-        echoCmd(argv);
+        echo_cmd(argv);
     
     } else if (!strncmp(argv[0], "pwd", 3)) {
-        printWorkingDirectory();
+        print_working_dir();
 
     } else if (!strncmp(argv[0], "cd", 2)) {
-        changeDir(argv);
+        change_dir(argv);
 
     } else if (!strncmp(argv[0], "type", 4)) {
-        typeCmd(argv, &exe_path);
+        type_cmd(argv, &exe_path);
 
-    } else if (findExecutableFile(argv[0], &exe_path)) {
-        runExecutableFile(argv, exe_path);
+    } else if (find_exe_files(argv[0], &exe_path)) {
+        run_exe_files(argv, exe_path);
 
     } else {
         printf("%s: not found\n", argv[0]);
@@ -252,7 +252,7 @@ char** tokenize(char* line) {
 /// THE CHAR(S) ">" MUST BE THEIR OWN TOKEN (SEPERATED BY SPACES) TO BE PARSED CORRECTLY
 /// @param argv 
 /// @return 
-int handleOutputRedir(char** argv) {
+int handle_out_redir(char** argv) {
     bool out_reder = false;
     bool err_reder = false;
     int append_out = 0;
@@ -310,9 +310,9 @@ int handleOutputRedir(char** argv) {
 
     // execute the command whose output gets redirected
     char* exe_path = NULL;
-    if (findExecutableFile(argv[0], &exe_path)) {
+    if (find_exe_files(argv[0], &exe_path)) {
         argv[output_idx] = NULL; // don't treat any tokens past here as arguments
-        runExecutableFile(argv, exe_path);
+        run_exe_files(argv, exe_path);
         free(exe_path);
     } else {
         perror("failed to find executable");
@@ -331,7 +331,7 @@ int handleOutputRedir(char** argv) {
 /// @brief 
 /// @param argv 
 /// @return 
-int* _getPipelineIndices(char** argv, int* pipe_cnt) {
+int* _get_pipeline_indices(char** argv, int* pipe_cnt) {
     int* pipe_idx_arr = NULL;
     // count indices to malloc array
     int pipe_cntr = 0;
@@ -352,7 +352,7 @@ int* _getPipelineIndices(char** argv, int* pipe_cnt) {
     return pipe_idx_arr;
 }
 
-int _spawnProcess(int input_fd, int output_fd, char** command) {
+int _spawn_process(int input_fd, int output_fd, char** command) {
     if (!fork()) { // child
         if (input_fd == STDOUT_FILENO) {
             dup2(input_fd, STDIN_FILENO);
@@ -363,14 +363,14 @@ int _spawnProcess(int input_fd, int output_fd, char** command) {
             close(output_fd);
         }
         
-        return execvp(command[0], command); // decision made not to use my findExecutableFile function here
+        return execvp(command[0], command); // decision made not to use my find_exe_files function here
         perror("execvp"); 
         exit(1);
     }
     return 0;
 }
 
-int forkPipes(char** argv, int* pipe_idx_arr, int n) {
+int fork_pipes(char** argv, int* pipe_idx_arr, int n) {
     int fd[2]; // [0] for read, [1] for write
     int inputfd = 0;
     int size = 0;
@@ -389,7 +389,7 @@ int forkPipes(char** argv, int* pipe_idx_arr, int n) {
         argv1 = malloc(sizeof(char*) * (size + 1));
         argv1[size] = NULL;
         memcpy(argv1, argv + pipe_idx_arr[i], size);
-        _spawnProcess(inputfd, fd[1], argv1);
+        _spawn_process(inputfd, fd[1], argv1);
         close(fd[1]); // parent can only be here at this point
         inputfd = fd[0];
     }
@@ -404,9 +404,9 @@ int forkPipes(char** argv, int* pipe_idx_arr, int n) {
 /// @brief 
 /// @param argv 
 /// @return 
-int handlePipelines(char** argv) {
+int handle_pipelines(char** argv) {
     int pipe_cnt = 0;
-    int* pipe_idx_arr = _getPipelineIndices(argv, &pipe_cnt); // ! notice that we can't use my ARRAY_LEN macro on this pointer since sizeof() only works on arrays whose length are known at compile time
+    int* pipe_idx_arr = _get_pipeline_indices(argv, &pipe_cnt); // ! notice that we can't use my ARRAY_LEN macro on this pointer since sizeof() only works on arrays whose length are known at compile time
     if (pipe_idx_arr == NULL) {
         free(pipe_idx_arr);
         return 1;
@@ -415,7 +415,7 @@ int handlePipelines(char** argv) {
     int status = 0;
 
     if (root == 0) { 
-        forkPipes(argv, pipe_idx_arr, pipe_cnt);
+        fork_pipes(argv, pipe_idx_arr, pipe_cnt);
         perror("pipe");
         exit(1);
     }
@@ -427,7 +427,7 @@ int handlePipelines(char** argv) {
     return 0;
 }
 
-void typeCmd(char** argv, char** exe_path) {
+void type_cmd(char** argv, char** exe_path) {
     const char* type = argv[1];
     bool shell_builtin = false;
     /*
@@ -443,7 +443,7 @@ void typeCmd(char** argv, char** exe_path) {
     }
     // if not recognized as builtin command then search for executable files in PATH
     if (!shell_builtin) {
-        if (findExecutableFile(type, exe_path)) {
+        if (find_exe_files(type, exe_path)) {
             printf("%s is %s\n", type, *exe_path);
         } else {
             printf("%s: not found\n", type);
@@ -451,7 +451,7 @@ void typeCmd(char** argv, char** exe_path) {
     }
 }
 
-void echoCmd(char** argv) {
+void echo_cmd(char** argv) {
     for (size_t i = 1; argv[i]; ++i) {
         printf("%s", argv[i]);
         if (argv[i+1]) printf(" ");
@@ -463,7 +463,7 @@ void echoCmd(char** argv) {
 /// @param filename executable file to find in PATH
 /// @param exe_path buffer that gets malloc'd with full file path
 /// @return 1 for success, 0 for failure
-int findExecutableFile(const char *filename, char **exe_path) {
+int find_exe_files(const char *filename, char **exe_path) {
     // search for executable programs in PATH
     const char* path = getenv("PATH");
     // if we do not duplicate the path then we are actually editing the PATH environment everytime we tokenize on dir upon calling this func!
@@ -507,7 +507,7 @@ int findExecutableFile(const char *filename, char **exe_path) {
 /// @brief creates child process that executes command
 /// @param argv list of tokens
 /// @param fullpath path of exe, decision was made to use this in conjunction with exec instead of execvp because i implemented my own function to search in PATH
-void runExecutableFile(char** argv, char* fullpath) {
+void run_exe_files(char** argv, char* fullpath) {
     pid_t pid = fork(); // gotta fork otherwise if we run execv on the current process, its process image gets replaced and we can never return back to the current program
     int status = 0;
     if (pid < 0) {
@@ -523,7 +523,7 @@ void runExecutableFile(char** argv, char* fullpath) {
     }
 }
 
-void printWorkingDirectory() {
+void print_working_dir() {
     long size = pathconf(".", _PC_PATH_MAX); // use '.' for current path
     char* buf; 
     char* pwd;
@@ -534,7 +534,7 @@ void printWorkingDirectory() {
     }
 }
 
-void changeDir(char** argv) {
+void change_dir(char** argv) {
     char* target_path = argv[1];
     if (!target_path) {
         printf("No second token for cd\n");

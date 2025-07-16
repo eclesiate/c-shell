@@ -11,31 +11,31 @@
 #define AC_BUF_CAP 1024 // 1kb max word length
 #define INIT_MATCHES_BUF_SIZE 4 // trie should be small
 
-typedef struct Trie Trie;
-struct Trie {
-    Trie* children[256];
+typedef struct trie trie;
+struct trie {
+    trie* children[256];
     bool isEnd;
 };
 
 // there could be multiple Tries, one for builtins, one for executables
-typedef struct TrieType TrieType;
-struct TrieType {
+typedef struct trie_type trie_type;
+struct trie_type {
     char autocomplete_buf[AC_BUF_CAP];
     size_t autocomplete_buf_sz;
 };
 
-// insert into dynamic array of words, helper to assembleTree
-void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type);
-void acBufPush(char x, TrieType* type);
-void acBufPop(TrieType* type);
+// insert into dynamic array of words, helper to assemble_trie
+void push_word(char*** words, size_t* count, size_t* cap, trie_type* type);
+void ac_buf_push(char x, trie_type* type);
+void ac_buf_pop(trie_type* type);
 
-Trie* allocNode(void);
-Trie* trieCreate(void);
-void trieInsert(Trie* root, char* word);
-bool trieSearch(Trie* root, char* word);
-Trie* getPrefixSubtree(Trie* root, char* prefix, TrieType* type);
-void _assembleTreeHelper(Trie* root, char*** words, size_t* count, size_t* cap, TrieType* type);
-char** assembleTree(Trie* root, TrieType* type);
-void trieFree(Trie* root);
+trie* alloc_node(void);
+trie* trie_create(void);
+void trie_insert(trie* root, char* word);
+bool trie_search(trie* root, char* word);
+trie* get_prefix_subtree(trie* root, char* prefix, trie_type* type);
+void _assemble_trie_helper(trie* root, char*** words, size_t* count, size_t* cap, trie_type* type);
+char** assemble_trie(trie* root, trie_type* type);
+void trie_free(trie* root);
 
 #endif

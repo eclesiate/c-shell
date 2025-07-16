@@ -4,19 +4,19 @@ some of the function skeleton code taken from leetcode problem: https://leetcode
 #define _DEFAULT_SOURCE
 #include "prefixTree.h"
 
-void acBufPush(char x, TrieType* type) {
+void ac_buf_push(char x, trie_type* type) {
     assert((type->autocomplete_buf_sz < AC_BUF_CAP) && type);
     type->autocomplete_buf[type->autocomplete_buf_sz++] = x;
 }
 
-void acBufPop(TrieType* type) {
+void ac_buf_pop(trie_type* type) {
     assert((type->autocomplete_buf_sz > 0) && type);
     --type->autocomplete_buf_sz;
 }
 
 
-Trie* allocNode(void) {
-    Trie* node = calloc(1, sizeof(Trie));
+trie* alloc_node(void) {
+    trie* node = calloc(1, sizeof(trie));
     if(node == NULL) {
         perror("calloc");
         exit(1);
@@ -24,25 +24,25 @@ Trie* allocNode(void) {
     return node;
 }
 
-Trie* trieCreate(void) {
-    return allocNode();
+trie* trie_create(void) {
+    return alloc_node();
 }
 
-void trieInsert(Trie* root, char* word) {
+void trie_insert(trie* root, char* word) {
     assert(root && word);
 
-    Trie* currNode = root;
+    trie* currNode = root;
     for (size_t i = 0; word[i] != '\0'; ++i) {
         unsigned char idx = (unsigned char)word[i];
         if (!currNode->children[idx]) {
-            currNode->children[idx] = allocNode();
+            currNode->children[idx] = alloc_node();
         }
         currNode = currNode->children[idx];
     }
     currNode->isEnd = true;
 }
 
-bool trieSearch(Trie* root, char* word) { // left as recursive, don't think ill be using this
+bool trie_search(trie* root, char* word) { // left as recursive, don't think ill be using this
     assert(word);
 
     if (root == NULL) {
@@ -55,56 +55,56 @@ bool trieSearch(Trie* root, char* word) { // left as recursive, don't think ill 
         }
         return false;
     }
-    return trieSearch(root->children[(size_t) *word], word + 1);
+    return trie_search(root->children[(size_t) *word], word + 1);
 }
 
 // returns sub tree, inserts prefix into buffer, which will be used when we are assembling the subtree
-Trie* getPrefixSubtree(Trie* root, char* prefix, TrieType* type) {
+trie* get_prefix_subtree(trie* root, char* prefix, trie_type* type) {
     assert(root && prefix);
-    Trie* curr = root;
+    trie* curr = root;
     for (size_t i = 0; prefix[i] != '\0'; ++i) {
         unsigned char idx = (unsigned char)prefix[i];
         if (!curr->children[idx]) {
             return NULL;
         }
         curr = curr->children[idx];
-        acBufPush(prefix[i], type);
+        ac_buf_push(prefix[i], type);
     }
     return curr;
 }
 
-void pushWord(char*** words, size_t* count, size_t* cap, TrieType* type) {
+void push_word(char*** words, size_t* count, size_t* cap, trie_type* type) {
     assert(count && cap && type);
     // resize array
     if (*count >= *cap) {
         *cap = (*cap == 0) ? INIT_MATCHES_BUF_SIZE : (*cap) * 2; 
         *words = realloc(*words, (*cap) * sizeof(char*));
     }
-    // * remember "*" has operator precendence, so you must inclose what you want dereferenced with brackets
+    // * remember "*" has operator precendence, so you must inclose what you want dereferenced with brackets, took forever to debug
     (*words)[(*count)++] = strndup(type->autocomplete_buf, type->autocomplete_buf_sz); // *strndup adds null terminator
 }
 
-void _assembleTreeHelper(Trie* root, char*** words, size_t* count, size_t* cap, TrieType* type) {
+void _assemble_trie_helper(trie* root, char*** words, size_t* count, size_t* cap, trie_type* type) {
     if (root->isEnd) {
-        pushWord(words, count, cap, type);
+        push_word(words, count, cap, type);
     }
     // DFS search all the nodes
     for (size_t i = 0; i < ARRAY_LEN(root->children); ++i) {
         if (root->children[i] != NULL) {
-            acBufPush((char) i, type);
-            _assembleTreeHelper(root->children[i], words, count, cap, type);
-            acBufPop(type);
+            ac_buf_push((char) i, type);
+            _assemble_trie_helper(root->children[i], words, count, cap, type);
+            ac_buf_pop(type);
         }   
     }
 }
 
-char** assembleTree(Trie* root, TrieType* type) {
+char** assemble_trie(trie* root, trie_type* type) {
     assert(root);
     char** words = NULL;
     size_t count = 0;
     size_t cap = 0;
     // populate words array of possible autocomplete matches
-    _assembleTreeHelper(root, &words, &count, &cap, type);
+    _assemble_trie_helper(root, &words, &count, &cap, type);
     // push NULL sentinel into array
     if (count >= cap) {
         cap = (cap == 0) ? INIT_MATCHES_BUF_SIZE : cap * 2; 
@@ -114,10 +114,10 @@ char** assembleTree(Trie* root, TrieType* type) {
     return words; //* GNU readline will free the mallocd strings in the array here
 }
 
-void trieFree(Trie* root) {
+void trie_free(trie* root) {
     if (!root) return;
     for (int i = 0; i < 256; ++i) {
-        trieFree(root->children[i]);
+        trie_free(root->children[i]);
     }
     free(root);
 }
