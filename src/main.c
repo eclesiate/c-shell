@@ -482,11 +482,19 @@ int find_exe_files(const char *filename, char **exe_path) {
         }
         for (int i = 0; i < num_exe; ++i) {
             if (!strcmp(exe_list[i]->d_name, filename)) {
-                exe_found = true;
                 size_t buf_len = strlen(curr_path) + strlen(filename) + 2; // +1 for '/'
                 *exe_path = malloc(buf_len);
                 snprintf(*exe_path, buf_len, "%s/%s", curr_path, filename);
-                break;
+                
+                // ensure matching filename is actually regular and exeuctable
+                struct stat st;
+                if (stat(*exe_path, &st) == 0) {
+                    if (S_ISREG(st.st_mode) && (st.st_mode & S_IXUSR)) {
+                        exe_found = true;
+                        break;
+                    }
+                }
+                free(*exe_path);
             }
         }
 
