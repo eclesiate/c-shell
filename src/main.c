@@ -50,7 +50,7 @@ void change_dir(char** argv);
 int is_builtin(char* command);
 int run_builtin(char** argv);
 
-void list_history(void);
+void list_history(int n);
 
 int main(int argc, char* argv[]) {
 
@@ -576,11 +576,11 @@ int is_builtin(char* command) {
     return 0;
 }
 
-void list_history(void) {
+void list_history(int n) {
     HIST_ENTRY** history = history_list();
-    size_t base = 1;
-    for (size_t i = 0; history[i]; ++i) {
-        printf("\t%ld  %s\n", i + base, history[i]->line);
+    int base = (n != -1) ? history_length - n : 0;
+    for (size_t i = base; history[i]; ++i) {
+        printf("\t%ld  %s\n", i + history_base, history[i]->line);
     }
 }
 
@@ -603,7 +603,12 @@ int run_builtin(char** argv) {
         return 0;
     }
     else if(!strcmp(argv[0], "history")) {
-        list_history();
+        // limiting history entries
+        if(argv[1] && argv[1][0] >= '0' && argv[1][0] <= '9') {
+            list_history(atoi(argv[1]));
+        } else { // full list
+            list_history(-1);
+        }
         return 0;
     }
     else if (!strcmp(argv[0], "type")) {
