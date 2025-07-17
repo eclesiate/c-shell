@@ -29,7 +29,7 @@ Fixes/Improvements:
 
 #include "autocomplete.h"
 
-static const char* allowable_cmds[] = {"type", "echo", "exit", "pwd", NULL};
+static const char* builtin_cmds[] = {"type", "echo", "exit", "pwd", "history", NULL};
 
 int handle_inputs(const char* input);
 char** tokenize(char* line);
@@ -38,7 +38,7 @@ int handle_out_redir(char** argv);
 
 int _spawn_process(int input_fd, int output_fd, char** command);
 int* _get_pipeline_indices(char** argv, int* pipe_cnt);
-int fork_pipes(char** argv, int* pipe_idx_arr, int n);
+int fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes);
 int handle_pipelines(char** argv);
 
 int find_exe_files(const char* filename, char** exe_path);
@@ -353,12 +353,13 @@ int* _get_pipeline_indices(char** argv, int* pipe_cnt) {
 }
 
 int _spawn_process(int input_fd, int output_fd, char** command) {
-    if (!fork()) { // child
-        if (input_fd == STDOUT_FILENO) {
+    pid_t parent = fork();
+    if (!parent) {
+        if (input_fd != STDOUT_FILENO) {
             dup2(input_fd, STDIN_FILENO);
             close(input_fd);
         }
-        if (output_fd == STDIN_FILENO) {
+        if (output_fd != STDIN_FILENO) {
             dup2(output_fd, STDOUT_FILENO);
             close(output_fd);
         }
@@ -370,13 +371,13 @@ int _spawn_process(int input_fd, int output_fd, char** command) {
     return 0;
 }
 
-int fork_pipes(char** argv, int* pipe_idx_arr, int n) {
+int fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes) {
     int fd[2]; // [0] for read, [1] for write
-    int inputfd = 0;
+    int inputfd = STDIN_FILENO;
     int size = 0;
     char** argv1 = NULL;
 
-    for (int i = 0; i < n - 1; ++i) {
+    for (int i = 0; i < num_pipes; ++i) {
         if (pipe(fd)) {
             perror("pipe");
             exit(1);
@@ -386,19 +387,20 @@ int fork_pipes(char** argv, int* pipe_idx_arr, int n) {
         } else {
             size = pipe_idx_arr[i] - pipe_idx_arr[i - 1] - 1;
         }
-        argv1 = malloc(sizeof(char*) * (size + 1));
+        argv1 = malloc(sizeof(char*) * (size + 1)); // +1 for NULL sentinel
         argv1[size] = NULL;
-        memcpy(argv1, argv + pipe_idx_arr[i], size);
+        size_t start = (i == 0) ? 0 : pipe_idx_arr[i - 1] + 1;
+        memcpy(argv1, argv + start, size * sizeof(char*));
         _spawn_process(inputfd, fd[1], argv1);
+        free(argv1);
         close(fd[1]); // parent can only be here at this point
         inputfd = fd[0];
     }
-    // handle last pipeline
-    if (inputfd == STDOUT_FILENO) {
-        dup2(inputfd, STDIN_FILENO);
-    }
 
-    return execvp(argv[pipe_idx_arr[n - 1] + 1], argv + pipe_idx_arr[n-1] + 1);
+    dup2(inputfd, STDIN_FILENO);
+    char** last_cmd = argv + pipe_idx_arr[num_pipes - 1] + 1;
+    return execvp(last_cmd[0], last_cmd);
+    return 1;
 }
 
 /// @brief 
@@ -407,20 +409,21 @@ int fork_pipes(char** argv, int* pipe_idx_arr, int n) {
 int handle_pipelines(char** argv) {
     int pipe_cnt = 0;
     int* pipe_idx_arr = _get_pipeline_indices(argv, &pipe_cnt); // ! notice that we can't use my ARRAY_LEN macro on this pointer since sizeof() only works on arrays whose length are known at compile time
-    if (pipe_idx_arr == NULL) {
-        free(pipe_idx_arr);
-        return 1;
-    }
-    pid_t root = fork();
+    if (pipe_idx_arr == NULL) { 
+        free(pipe_idx_arr); 
+        return 1; 
+    } 
+    pid_t parent = fork(); 
     int status = 0;
 
-    if (root == 0) { 
-        fork_pipes(argv, pipe_idx_arr, pipe_cnt);
-        perror("pipe");
-        exit(1);
+    if (!parent) { 
+        if (fork_pipes(argv, pipe_idx_arr, pipe_cnt) == -1) {
+            perror("pipe");
+            exit(1);
+        }
     }
     do {
-        waitpid(root, &status, WUNTRACED); // reap childprocess, WUNTRACED for better reporting on process state
+        waitpid(parent, &status, WUNTRACED); // reap childprocess, WUNTRACED for better reporting on process state
     } while (!WIFEXITED(status) && !WIFSIGNALED(status)); // wait while the child did NOT end normally AND did NOT end by a signal
     
     free(pipe_idx_arr);
@@ -430,11 +433,8 @@ int handle_pipelines(char** argv) {
 void type_cmd(char** argv, char** exe_path) {
     const char* type = argv[1];
     bool shell_builtin = false;
-    /*
-        Chatgpt suggested this very cool way of looping through an array of strings in C.
-        like how strings are null terminated, make the last element of the array NULL to act as a "sentinel" for the loop condition
-    */
-    for (const char** cmd = allowable_cmds; *cmd; ++cmd) {
+
+    for (const char** cmd = builtin_cmds; *cmd; ++cmd) {
         if (!strcmp(type, *cmd)) {
             printf("%s is a shell builtin\n", type);
             shell_builtin = true;
