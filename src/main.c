@@ -29,7 +29,7 @@ Fixes/Improvements:
 
 #include "autocomplete.h"
 
-static const char* builtin_cmds[] = {"type", "echo", "exit", "pwd", "history", NULL};
+static const char* builtin_cmds[] = {"type", "echo", "exit", "pwd", "history", "cd", NULL};
 
 int handle_inputs(const char* input);
 char** tokenize(char* line);
@@ -38,7 +38,7 @@ int handle_out_redir(char** argv);
 
 int _spawn_process(int input_fd, int output_fd, char** command);
 int* _get_pipeline_indices(char** argv, int* pipe_cnt);
-int fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes);
+int _fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes);
 int handle_pipelines(char** argv);
 
 int find_exe_files(const char* filename, char** exe_path);
@@ -48,6 +48,9 @@ void type_cmd(char** arg, char** exe_path);
 void echo_cmd(char** msg);
 void print_working_dir();
 void change_dir(char** argv);
+
+int is_builtin(char* command);
+int run_builtin(char** argv);
 
 int main(int argc, char* argv[]) {
 
@@ -92,34 +95,28 @@ int handle_inputs(const char* input) {
         free(inputDup);
         free(argv);
         return 0;
-    } else if (!handle_pipelines(argv)) {
+    } 
+    else if (!handle_pipelines(argv)) {
         free(inputDup);
         free(argv);
         return 0;
-    } else if (!strncmp(argv[0], "exit", 4)) {
-        if (argv[1] && !strncmp(argv[1], "0", 1)) {
-            free(inputDup);
-            free(argv);
-            return 1;
-        } else {
-            printf("%s: not found\n", argv[0]);
-        }
-    } else if (!strncmp(argv[0], "echo", 4)) { 
-        echo_cmd(argv);
-    
-    } else if (!strncmp(argv[0], "pwd", 3)) {
-        print_working_dir();
-
-    } else if (!strncmp(argv[0], "cd", 2)) {
-        change_dir(argv);
-
-    } else if (!strncmp(argv[0], "type", 4)) {
-        type_cmd(argv, &exe_path);
-
-    } else if (find_exe_files(argv[0], &exe_path)) {
+    } 
+    else if (!strncmp(argv[0], "exit", 4)) { // free local resources, run_builtin() does not
+        free(inputDup);
+        free(argv);
+        return 1;
+    }
+    else if(is_builtin(argv[0])) {
+        run_builtin(argv);
+        free(inputDup);
+        free(argv);
+        return 0;
+    } 
+    else if (find_exe_files(argv[0], &exe_path)) {
         run_exe_files(argv, exe_path);
 
-    } else {
+    } 
+    else {
         printf("%s: not found\n", argv[0]);
     }
     if(exe_path) free(exe_path);
@@ -363,6 +360,11 @@ int _spawn_process(int input_fd, int output_fd, char** command) {
             dup2(output_fd, STDOUT_FILENO);
             close(output_fd);
         }
+
+        if (is_builtin(command[0])) { // NOTE. assuming builtin is always the first command
+            int status = run_builtin(command);
+            exit(status);
+        }
         
         return execvp(command[0], command); // decision made not to use my find_exe_files function here
         perror("execvp"); 
@@ -371,7 +373,7 @@ int _spawn_process(int input_fd, int output_fd, char** command) {
     return 0;
 }
 
-int fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes) {
+int _fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes) {
     int fd[2]; // [0] for read, [1] for write
     int inputfd = STDIN_FILENO;
     int size = 0;
@@ -394,13 +396,21 @@ int fork_pipes(char** argv, int* pipe_idx_arr, int num_pipes) {
         _spawn_process(inputfd, fd[1], argv1);
         free(argv1);
         close(fd[1]); // parent can only be here at this point
-        inputfd = fd[0];
+        inputfd = fd[0]; // inputfd for next command is the read end of the pipe
     }
-
-    dup2(inputfd, STDIN_FILENO);
+    if (inputfd != STDIN_FILENO) {
+        dup2(inputfd, STDIN_FILENO);
+        close(inputfd);
+    }
+    // NOTE: I decided not to call waitpid on all the child processes since I believe that 
+    // this approach is easy to understand and has the necessary parallelization
     char** last_cmd = argv + pipe_idx_arr[num_pipes - 1] + 1;
+
+    if (is_builtin(last_cmd[0])) { // NOTE. assuming builtin is always the first command
+        int status = run_builtin(last_cmd);
+        exit(status);
+    }
     return execvp(last_cmd[0], last_cmd);
-    return 1;
 }
 
 /// @brief 
@@ -413,11 +423,12 @@ int handle_pipelines(char** argv) {
         free(pipe_idx_arr); 
         return 1; 
     } 
+
     pid_t parent = fork(); 
     int status = 0;
 
     if (!parent) { 
-        if (fork_pipes(argv, pipe_idx_arr, pipe_cnt) == -1) {
+        if (_fork_pipes(argv, pipe_idx_arr, pipe_cnt) == -1) {
             perror("pipe");
             exit(1);
         }
@@ -432,17 +443,12 @@ int handle_pipelines(char** argv) {
 
 void type_cmd(char** argv, char** exe_path) {
     const char* type = argv[1];
-    bool shell_builtin = false;
 
-    for (const char** cmd = builtin_cmds; *cmd; ++cmd) {
-        if (!strcmp(type, *cmd)) {
-            printf("%s is a shell builtin\n", type);
-            shell_builtin = true;
-            break;
-        }
+    if (is_builtin((char*) type)) {
+        printf("%s is a shell builtin\n", type);
     }
-    // if not recognized as builtin command then search for executable files in PATH
-    if (!shell_builtin) {
+    // search for executable files in PATH
+    else {
         if (find_exe_files(type, exe_path)) {
             printf("%s is %s\n", type, *exe_path);
         } else {
@@ -555,4 +561,41 @@ void change_dir(char** argv) {
     if (chdir(target_path)) {
         printf("cd: %s: No such file or directory\n", target_path);
     }
+}
+
+int is_builtin(char* command) {
+    if (command == NULL) return -1;
+    for (const char** builtin = builtin_cmds; *builtin; ++builtin) {
+        if (!strcmp(command, *builtin)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int run_builtin(char** argv) {
+    if (!argv[0]) return -1;
+ 
+    if (strcmp(argv[0], "exit") == 0) {
+        exit(0);
+    }
+    else if (strncmp(argv[0], "cd", 2) == 0) {
+        change_dir(argv);
+        return 0;
+    }
+    else if (strcmp(argv[0], "pwd") == 0) {
+        print_working_dir();
+        return 0;
+    }
+    else if (strcmp(argv[0], "echo") == 0) {
+        echo_cmd(argv);
+        return 0;
+    }
+    else if (strcmp(argv[0], "type") == 0) {
+        char *exe_path = NULL;
+        type_cmd(argv, &exe_path);
+        if (exe_path) free(exe_path);
+        return 0;
+    }
+    return -1;
 }
