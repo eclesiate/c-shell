@@ -29,8 +29,6 @@ Fixes/Improvements:
 
 #include "autocomplete.h"
 
-static const char* builtin_cmds[] = {"type", "echo", "exit", "pwd", "history", "cd", NULL};
-
 int handle_inputs(const char* input);
 char** tokenize(char* line);
 
@@ -52,6 +50,8 @@ void change_dir(char** argv);
 int is_builtin(char* command);
 int run_builtin(char** argv);
 
+void list_history(void);
+
 int main(int argc, char* argv[]) {
 
     char* line = NULL;
@@ -61,7 +61,12 @@ int main(int argc, char* argv[]) {
     while (1) {
         line = readline("$ ");
 
-        if (line == NULL) break;
+        if (line != NULL && *line) {
+            add_history(line);
+        } 
+        else {
+            break;
+        }
         
         if (handle_inputs(line)) {
             free(line);
@@ -90,7 +95,6 @@ int handle_inputs(const char* input) {
         free(argv);
         return 0; 
     }
-
     if (!handle_out_redir(argv)) {
         free(inputDup);
         free(argv);
@@ -101,7 +105,7 @@ int handle_inputs(const char* input) {
         free(argv);
         return 0;
     } 
-    else if (!strncmp(argv[0], "exit", 4)) { // free local resources, run_builtin() does not
+    else if (!strncmp(argv[0], "exit", 4)) { // separate case since run_builtin() calls exit(0)
         free(inputDup);
         free(argv);
         return 1;
@@ -114,7 +118,6 @@ int handle_inputs(const char* input) {
     } 
     else if (find_exe_files(argv[0], &exe_path)) {
         run_exe_files(argv, exe_path);
-
     } 
     else {
         printf("%s: not found\n", argv[0]);
@@ -573,25 +576,37 @@ int is_builtin(char* command) {
     return 0;
 }
 
+void list_history(void) {
+    HIST_ENTRY** history = history_list();
+    size_t base = 1;
+    for (size_t i = 0; history[i]; ++i) {
+        printf("\t%ld  %s\n", i + base, history[i]->line);
+    }
+}
+
 int run_builtin(char** argv) {
     if (!argv[0]) return -1;
  
-    if (strcmp(argv[0], "exit") == 0) {
+    if (!strcmp(argv[0], "exit")) {
         exit(0);
     }
-    else if (strncmp(argv[0], "cd", 2) == 0) {
+    else if (!strcmp(argv[0], "cd")) {
         change_dir(argv);
         return 0;
     }
-    else if (strcmp(argv[0], "pwd") == 0) {
+    else if (!strcmp(argv[0], "pwd")) {
         print_working_dir();
         return 0;
     }
-    else if (strcmp(argv[0], "echo") == 0) {
+    else if (!strcmp(argv[0], "echo")) {
         echo_cmd(argv);
         return 0;
     }
-    else if (strcmp(argv[0], "type") == 0) {
+    else if(!strcmp(argv[0], "history")) {
+        list_history();
+        return 0;
+    }
+    else if (!strcmp(argv[0], "type")) {
         char *exe_path = NULL;
         type_cmd(argv, &exe_path);
         if (exe_path) free(exe_path);

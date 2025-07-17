@@ -39,6 +39,8 @@ trie* builtin_tree_root = NULL;
 trie* exe_tree_root = NULL;
 trie* filepath_tree_root = NULL;
 
+const char* builtin_cmds[] = {"type", "echo", "exit", "pwd", "history", "cd", NULL};
+
 void init_readline(void) {
     rl_completer_word_break_characters = 
         strdup(" \t\n\"\\'`@$><;|&{(");
@@ -93,8 +95,9 @@ static void display_matches(char **matches, int num_matches, int max_length) {
 /// @brief test function for just the echo and exit builtins
 /// @param root of trie
 static void populate_builtin_tree(trie *root) {
-    trie_insert(root, "echo");
-    trie_insert(root, "exit");
+    for(size_t i = 0; builtin_cmds[i]; ++i) {
+        trie_insert(root, (char*) builtin_cmds[i]);
+    }
 }
 
 /// @brief scan directory for files and add the full file paths to the trie 
