@@ -13,9 +13,9 @@ but my own custom completion and display functions.
 #include <stdbool.h>
 
 #include <readline/readline.h>
-#include <readline/history.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
 
 #include "autocomplete.h"
 #include "prefixTree.h"
@@ -41,7 +41,7 @@ trie* filepath_tree_root = NULL;
 
 const char* builtin_cmds[] = {"type", "echo", "exit", "pwd", "history", "cd", NULL};
 
-void init_readline(void) {
+void init_ac_readline(void) {
     rl_completer_word_break_characters = 
         strdup(" \t\n\"\\'`@$><;|&{(");
     rl_attempted_completion_function = autocomplete;

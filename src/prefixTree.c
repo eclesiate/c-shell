@@ -17,7 +17,7 @@ void ac_buf_pop(trie_type* type) {
 
 trie* alloc_node(void) {
     trie* node = calloc(1, sizeof(trie));
-    if(node == NULL) {
+    if (node == NULL) {
         perror("calloc");
         exit(1);
     }

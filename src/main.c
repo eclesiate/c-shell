@@ -9,6 +9,7 @@ Allows pipelined commands, command history, and output redirection.
 Fixes/Improvements:
 - //TODO. change printf's to gnu readline buffer variables instead.
 - //TODO. export command does not add new PATH to executable trie
+- //TODO. job control for processes
 */
 
 #define _DEFAULT_SOURCE
@@ -25,9 +26,11 @@ Fixes/Improvements:
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <readline/readline.h>
-#include <readline/history.h>
 
 #include "autocomplete.h"
+#include "historyList.h"
+#include "history.h"
+#include "readline_init.h"
 
 int handle_inputs(const char* input);
 char** tokenize(char* line);
@@ -50,24 +53,23 @@ void change_dir(char** argv);
 int is_builtin(char* command);
 int run_builtin(char** argv);
 
-void list_history(int n);
-
 int main(int argc, char* argv[]) {
 
     char* line = NULL;
     init_readline();
     init_ac();
+    history = create_history_list();
 
     while (1) {
         line = readline("$ ");
 
         if (line != NULL && *line) {
-            add_history(line);
+            add_history_entry(history, line);
         } 
         else {
-            break;
+            free(line);
+            continue;
         }
-        
         if (handle_inputs(line)) {
             free(line);
             break; // exit cmd
@@ -76,6 +78,7 @@ int main(int argc, char* argv[]) {
         free(line);
     }
     cleanup_ac();
+    free_history_list(history);
     return 0;
 }
 
@@ -110,7 +113,7 @@ int handle_inputs(const char* input) {
         free(argv);
         return 1;
     }
-    else if(is_builtin(argv[0])) {
+    else if (is_builtin(argv[0])) {
         run_builtin(argv);
         free(inputDup);
         free(argv);
@@ -122,7 +125,7 @@ int handle_inputs(const char* input) {
     else {
         printf("%s: not found\n", argv[0]);
     }
-    if(exe_path) free(exe_path);
+    if (exe_path) free(exe_path);
     free(argv);
     free(inputDup);
     return 0;
@@ -576,14 +579,6 @@ int is_builtin(char* command) {
     return 0;
 }
 
-void list_history(int n) {
-    HIST_ENTRY** history = history_list();
-    int base = (n != -1) ? history_length - n : 0;
-    for (size_t i = base; history[i]; ++i) {
-        printf("\t%ld  %s\n", i + history_base, history[i]->line);
-    }
-}
-
 int run_builtin(char** argv) {
     if (!argv[0]) return -1;
  
@@ -602,9 +597,9 @@ int run_builtin(char** argv) {
         echo_cmd(argv);
         return 0;
     }
-    else if(!strcmp(argv[0], "history")) {
+    else if (!strcmp(argv[0], "history")) {
         // limiting history entries
-        if(argv[1] && argv[1][0] >= '0' && argv[1][0] <= '9') {
+        if (argv[1] && argv[1][0] >= '0' && argv[1][0] <= '9') {
             list_history(atoi(argv[1]));
         } else { // full list
             list_history(-1);
